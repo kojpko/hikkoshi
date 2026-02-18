@@ -1524,6 +1524,7 @@ body::before {
     backdrop-filter: blur(20px);
     box-shadow: var(--shadow-lg);
     animation: modalSlideIn 0.5s ease;
+    overflow: hidden;
 }
 
 .auth-icon {
@@ -1554,6 +1555,7 @@ body::before {
 
 .auth-input-group input {
     flex: 1;
+    min-width: 0;
     background: var(--bg-glass);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
