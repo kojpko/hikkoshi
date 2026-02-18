@@ -1116,74 +1116,176 @@ body::before {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
-/* --- Responsive --- */
+/* --- Responsive (Smartphone Optimized) --- */
 @media (max-width: 768px) {
+
+    /* ヘッダー */
     .header {
-        padding: 16px;
+        padding: 14px 16px 12px;
     }
 
     .header-content {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .header-title {
+        text-align: center;
     }
 
     .header-title h1 {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
     }
 
+    .subtitle {
+        font-size: 0.78rem;
+    }
+
+    /* カウントダウン：コンパクト化 */
     .countdown-section {
-        align-self: center;
+        gap: 6px;
     }
 
+    .countdown-card {
+        padding: 6px 10px;
+        min-width: 52px;
+    }
+
+    .countdown-number {
+        font-size: 1.5rem;
+    }
+
+    .countdown-label {
+        font-size: 0.65rem;
+    }
+
+    /* 引っ越し日設定 */
     .moving-date-setting {
-        align-self: center;
         flex-wrap: wrap;
         justify-content: center;
-    }
-
-    .tab-nav {
-        justify-content: flex-start;
-        padding: 6px 8px;
-    }
-
-    .tab-btn {
-        padding: 8px 12px;
         font-size: 0.8rem;
     }
 
+    /* 進捗バー */
+    .progress-bar-container {
+        margin-top: 10px;
+        height: 20px;
+    }
+
+    /* タブナビ：ボトム固定 */
+    .tab-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        z-index: 100;
+        padding: 4px 8px;
+        padding-bottom: calc(4px + env(safe-area-inset-bottom));
+        border-bottom: none;
+        border-top: 1px solid var(--border-color);
+        background: rgba(26, 26, 46, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        justify-content: space-around;
+        gap: 0;
+    }
+
+    .tab-btn {
+        flex-direction: column;
+        padding: 6px 4px;
+        font-size: 0.65rem;
+        gap: 2px;
+        flex: 1;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
     .tab-label {
-        display: none;
+        display: block;
+        font-size: 0.6rem;
+        line-height: 1.2;
     }
 
     .tab-icon {
-        font-size: 1.3rem;
+        font-size: 1.25rem;
     }
 
+    .tab-btn.active {
+        box-shadow: none;
+        background: rgba(99, 102, 241, 0.2);
+    }
+
+    /* メインコンテンツ：ボトムナビ分の余白 */
     .main-content {
-        padding: 16px;
+        padding: 14px 12px;
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
     }
 
+    /* パネルヘッダー */
     .panel-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .panel-header h2 {
+        font-size: 1.15rem;
     }
 
     .panel-actions {
         width: 100%;
+        flex-wrap: wrap;
     }
 
-    .form-row {
-        grid-template-columns: 1fr;
+    .panel-actions .btn-primary {
+        flex: 1;
     }
 
-    .budget-summary {
-        grid-template-columns: 1fr;
+    .panel-actions .select-input {
+        flex: 1;
+        min-width: 0;
     }
 
-    .notes-grid {
-        grid-template-columns: 1fr;
+    /* ボタン：タッチフレンドリー */
+    .btn {
+        padding: 12px 18px;
+        font-size: 0.88rem;
     }
 
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 0.95rem;
+    }
+
+    /* タスクアイテム */
+    .task-item {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .task-checkbox {
+        width: 26px;
+        height: 26px;
+    }
+
+    .task-item-name {
+        font-size: 0.9rem;
+    }
+
+    .task-item-meta {
+        gap: 4px;
+    }
+
+    .task-tag {
+        font-size: 0.68rem;
+        padding: 2px 6px;
+    }
+
+    /* スマホではアクション常時表示 */
     .task-item-actions,
     .place-item-actions,
     .timeline-card-actions,
@@ -1191,7 +1293,184 @@ body::before {
     .expense-item-actions {
         opacity: 1;
     }
+
+    /* 場所アイテム */
+    .place-item {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .place-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
+    }
+
+    .place-item-name {
+        font-size: 0.9rem;
+    }
+
+    .place-item-detail {
+        font-size: 0.78rem;
+    }
+
+    .place-item-detail span {
+        display: block;
+        margin-right: 0;
+        margin-top: 2px;
+    }
+
+    /* タイムライン */
+    .timeline {
+        padding-left: 24px;
+    }
+
+    .timeline-card {
+        padding: 12px;
+    }
+
+    .timeline-title {
+        font-size: 0.9rem;
+    }
+
+    /* メモグリッド */
+    .notes-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .note-card {
+        padding: 14px;
+    }
+
+    .note-card-actions {
+        position: static;
+        margin-top: 10px;
+        justify-content: flex-end;
+    }
+
+    /* 予算 */
+    .budget-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .budget-card {
+        padding: 14px;
+    }
+
+    .budget-card-value {
+        font-size: 1.3rem;
+    }
+
+    /* 費用アイテム */
+    .expense-item {
+        padding: 10px 12px;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .expense-item-amount {
+        font-size: 0.95rem;
+    }
+
+    .expense-item-actions {
+        flex-basis: 100%;
+        justify-content: flex-end;
+    }
+
+    /* モーダル：フルスクリーン風 */
+    .modal-overlay {
+        padding: 10px;
+        align-items: flex-end;
+    }
+
+    .modal {
+        max-height: 85vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .modal form {
+        padding: 16px 18px 20px;
+    }
+
+    .modal-header {
+        padding: 16px 18px 0;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="date"],
+    .form-group input[type="time"],
+    .form-group textarea,
+    .form-group .select-input {
+        font-size: 16px;
+        /* iOS auto-zoom防止 */
+        padding: 12px 14px;
+    }
+
+    /* タスクスタッツ */
+    .task-stats {
+        gap: 8px;
+    }
+
+    .stat-item {
+        font-size: 0.78rem;
+        padding: 3px 10px;
+    }
+
+    /* Auth Gate */
+    .auth-card {
+        padding: 32px 24px;
+    }
+
+    .auth-input-group {
+        flex-direction: column;
+    }
+
+    .auth-input-group input {
+        font-size: 16px;
+        /* iOS auto-zoom防止 */
+    }
+
+    .auth-input-group .btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
+
+/* 極小画面（SE等） */
+@media (max-width: 380px) {
+    .header-title h1 {
+        font-size: 1rem;
+    }
+
+    .countdown-card {
+        padding: 4px 8px;
+        min-width: 44px;
+    }
+
+    .countdown-number {
+        font-size: 1.2rem;
+    }
+
+    .tab-label {
+        display: none;
+    }
+
+    .tab-icon {
+        font-size: 1.4rem;
+    }
+
+    .tab-btn {
+        padding: 8px 4px;
+    }
+}
+
 
 /* Scrollbar */
 ::-webkit-scrollbar {
