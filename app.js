@@ -1,0 +1,782 @@
+/* ============================================
+   引っ越しプロジェクト管理ツール - アプリケーションロジック
+   Firebase Firestore リアルタイム同期版
+   ============================================ */
+
+// ===== Firebase SDK (CDN) =====
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js';
+import {
+    getFirestore, collection, doc, addDoc, updateDoc, deleteDoc,
+    onSnapshot, query, orderBy, setDoc, getDoc
+} from 'https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js';
+
+// ===== Firebase設定 =====
+const firebaseConfig = {
+    apiKey: "AIzaSyCTt9C6sJffzOfcliNb7SF2RhhUvYJVRig",
+    authDomain: "sayuri-hikkoshi.firebaseapp.com",
+    projectId: "sayuri-hikkoshi",
+    storageBucket: "sayuri-hikkoshi.firebasestorage.app",
+    messagingSenderId: "659647793868",
+    appId: "1:659647793868:web:fbb7cce33d8f0210731069"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ===== カテゴリマップ =====
+const CATEGORIES = {
+    housing: '🏠 住居関連',
+    paperwork: '📋 届出・手続き',
+    packing: '📦 荷造り・整理',
+    utilities: '💡 ライフライン',
+    finance: '💰 費用・契約',
+    address: '📬 住所変更通知',
+    other: '🔧 その他',
+};
+
+const PRIORITY_LABELS = {
+    high: '🔴 高',
+    medium: '🟡 中',
+    low: '🟢 低',
+};
+
+// ===== ユーティリティ =====
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    const month = d.getMonth() + 1;
+    const day = d.getDate();
+    const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+    const wd = weekdays[d.getDay()];
+    return `${month}/${day}（${wd}）`;
+}
+
+function formatCurrency(num) {
+    return '¥' + Number(num).toLocaleString();
+}
+
+function isOverdue(dateStr) {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(dateStr + 'T00:00:00') < today;
+}
+
+function isToday(dateStr) {
+    if (!dateStr) return false;
+    const today = new Date();
+    const d = new Date(dateStr + 'T00:00:00');
+    return today.getFullYear() === d.getFullYear() &&
+        today.getMonth() === d.getMonth() &&
+        today.getDate() === d.getDate();
+}
+
+function isPast(dateStr) {
+    if (!dateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(dateStr + 'T00:00:00') < today;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ===== インメモリキャッシュ =====
+let state = {
+    movingDate: '2026-03-31',
+    tasks: [],
+    places: [],
+    events: [],
+    notes: [],
+    expenses: [],
+};
+
+// ===== カウントダウン =====
+function updateCountdown() {
+    const now = new Date();
+    const target = new Date(state.movingDate + 'T00:00:00');
+    const diff = target - now;
+
+    if (diff <= 0) {
+        document.getElementById('countdown-days').textContent = '0';
+        document.getElementById('countdown-hours').textContent = '0';
+        document.getElementById('countdown-minutes').textContent = '0';
+        document.getElementById('countdown-seconds').textContent = '0';
+        return;
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    document.getElementById('countdown-days').textContent = days;
+    document.getElementById('countdown-hours').textContent = hours;
+    document.getElementById('countdown-minutes').textContent = minutes;
+    document.getElementById('countdown-seconds').textContent = seconds;
+}
+
+// ===== 進捗バー =====
+function updateProgress() {
+    const total = state.tasks.length;
+    const done = state.tasks.filter(t => t.done).length;
+    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+    const bar = document.getElementById('overall-progress-bar');
+    const text = document.getElementById('overall-progress-text');
+    bar.style.width = Math.max(pct, 3) + '%';
+    text.textContent = pct + '%';
+}
+
+// ===== タブ切り替え =====
+function initTabs() {
+    const savedTab = localStorage.getItem('hikkoshi_active_tab') || 'tasks';
+    switchTab(savedTab);
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            switchTab(tab);
+            localStorage.setItem('hikkoshi_active_tab', tab);
+        });
+    });
+}
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    const panel = document.getElementById(`panel-${tabId}`);
+    if (btn) btn.classList.add('active');
+    if (panel) panel.classList.add('active');
+}
+
+// ===== モーダル管理 =====
+function showModal(id) {
+    document.getElementById(id).classList.add('visible');
+}
+
+function hideModal(id) {
+    document.getElementById(id).classList.remove('visible');
+}
+
+function initModals() {
+    document.querySelectorAll('[data-close]').forEach(btn => {
+        btn.addEventListener('click', () => hideModal(btn.dataset.close));
+    });
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) hideModal(overlay.id);
+        });
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.visible').forEach(m => {
+                hideModal(m.id);
+            });
+        }
+    });
+}
+
+// =============================================
+//  Firestore CRUD + リアルタイムリスナー
+// =============================================
+
+// ----- 設定 (引っ越し日) -----
+async function loadSettings() {
+    const docRef = doc(db, 'settings', 'general');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+        state.movingDate = snap.data().movingDate || '2026-03-31';
+    }
+    document.getElementById('moving-date-input').value = state.movingDate;
+    updateCountdown();
+}
+
+async function saveMovingDate(dateVal) {
+    state.movingDate = dateVal;
+    await setDoc(doc(db, 'settings', 'general'), { movingDate: dateVal }, { merge: true });
+    updateCountdown();
+}
+
+function initMovingDate() {
+    document.getElementById('moving-date-input').value = state.movingDate;
+
+    document.getElementById('save-date-btn').addEventListener('click', () => {
+        const val = document.getElementById('moving-date-input').value;
+        if (val) saveMovingDate(val);
+    });
+
+    // リアルタイムリスナーで他端末の変更も反映
+    onSnapshot(doc(db, 'settings', 'general'), (snap) => {
+        if (snap.exists()) {
+            const data = snap.data();
+            if (data.movingDate) {
+                state.movingDate = data.movingDate;
+                document.getElementById('moving-date-input').value = data.movingDate;
+                updateCountdown();
+            }
+        }
+    });
+}
+
+// ----- タスク -----
+function initTasksListener() {
+    const q = collection(db, 'tasks');
+    onSnapshot(q, (snapshot) => {
+        state.tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderTasks();
+    });
+}
+
+function renderTasks() {
+    const filterCat = document.getElementById('task-filter-category').value;
+    let filtered = state.tasks;
+    if (filterCat !== 'all') {
+        filtered = filtered.filter(t => t.category === filterCat);
+    }
+
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    filtered.sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        if (priorityOrder[a.priority] !== priorityOrder[b.priority])
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+        if (a.due && b.due) return a.due.localeCompare(b.due);
+        if (a.due) return -1;
+        if (b.due) return 1;
+        return 0;
+    });
+
+    const container = document.getElementById('task-list');
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📋</span>
+                <p>${filterCat === 'all' ? 'まだタスクがありません。<br>「＋ タスク追加」ボタンから始めましょう！' : 'このカテゴリにはタスクがありません。'}</p>
+            </div>`;
+    } else {
+        container.innerHTML = filtered.map(task => {
+            const dueTxt = task.due ? formatDate(task.due) : '';
+            const overdueClass = task.due && isOverdue(task.due) && !task.done ? ' overdue' : '';
+            const memoHtml = task.memo ? `<div class="task-memo-text">${escapeHtml(task.memo)}</div>` : '';
+
+            return `
+            <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
+                <button class="task-checkbox ${task.done ? 'checked' : ''}" data-action="toggle-task" data-id="${task.id}">
+                    ${task.done ? '✓' : ''}
+                </button>
+                <div class="task-item-content">
+                    <div class="task-item-name">${escapeHtml(task.name)}</div>
+                    <div class="task-item-meta">
+                        <span class="task-tag">${CATEGORIES[task.category] || task.category}</span>
+                        <span class="task-tag priority-${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
+                        ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
+                    </div>
+                    ${memoHtml}
+                </div>
+                <div class="task-item-actions">
+                    <button class="btn-icon" data-action="edit-task" data-id="${task.id}" title="編集">✏️</button>
+                    <button class="btn-icon danger" data-action="delete-task" data-id="${task.id}" title="削除">🗑️</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    const total = state.tasks.length;
+    const done = state.tasks.filter(t => t.done).length;
+    document.getElementById('task-stat-total').textContent = `全体: ${total}`;
+    document.getElementById('task-stat-done').textContent = `完了: ${done}`;
+    document.getElementById('task-stat-remaining').textContent = `残り: ${total - done}`;
+
+    updateProgress();
+}
+
+function initTaskForm() {
+    document.getElementById('add-task-btn').addEventListener('click', () => {
+        document.getElementById('task-form').reset();
+        document.getElementById('task-edit-id').value = '';
+        document.getElementById('modal-task-title').textContent = 'タスク追加';
+        showModal('modal-task');
+    });
+
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('task-edit-id').value;
+        const taskData = {
+            name: document.getElementById('task-name').value.trim(),
+            category: document.getElementById('task-category').value,
+            priority: document.getElementById('task-priority').value,
+            due: document.getElementById('task-due').value,
+            memo: document.getElementById('task-memo').value.trim(),
+        };
+
+        if (editId) {
+            await updateDoc(doc(db, 'tasks', editId), taskData);
+        } else {
+            await addDoc(collection(db, 'tasks'), { ...taskData, done: false, createdAt: Date.now() });
+        }
+        hideModal('modal-task');
+    });
+
+    document.getElementById('task-filter-category').addEventListener('change', renderTasks);
+}
+
+// ----- 場所 -----
+function initPlacesListener() {
+    const q = collection(db, 'places');
+    onSnapshot(q, (snapshot) => {
+        state.places = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderPlaces();
+    });
+}
+
+function renderPlaces() {
+    const container = document.getElementById('place-list');
+
+    if (state.places.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">🗺️</span>
+                <p>訪問先をリストアップしましょう！<br>役所、不動産屋、銀行など</p>
+            </div>`;
+        return;
+    }
+
+    const sorted = [...state.places].sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        if (a.date && b.date) return a.date.localeCompare(b.date);
+        if (a.date) return -1;
+        if (b.date) return 1;
+        return 0;
+    });
+
+    container.innerHTML = sorted.map(place => {
+        return `
+        <div class="place-item ${place.done ? 'done' : ''}" data-id="${place.id}">
+            <button class="task-checkbox ${place.done ? 'checked' : ''}" data-action="toggle-place" data-id="${place.id}">
+                ${place.done ? '✓' : ''}
+            </button>
+            <div class="place-icon">📍</div>
+            <div class="place-item-content">
+                <div class="place-item-name">${escapeHtml(place.name)}</div>
+                <div class="place-item-detail">
+                    ${place.purpose ? `<span>📋 ${escapeHtml(place.purpose)}</span>` : ''}
+                    ${place.address ? `<span>🏢 ${escapeHtml(place.address)}</span>` : ''}
+                    ${place.date ? `<span>📅 ${formatDate(place.date)}</span>` : ''}
+                </div>
+                ${place.notes ? `<div class="task-memo-text">${escapeHtml(place.notes)}</div>` : ''}
+            </div>
+            <div class="place-item-actions">
+                <button class="btn-icon" data-action="edit-place" data-id="${place.id}" title="編集">✏️</button>
+                <button class="btn-icon danger" data-action="delete-place" data-id="${place.id}" title="削除">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function initPlaceForm() {
+    document.getElementById('add-place-btn').addEventListener('click', () => {
+        document.getElementById('place-form').reset();
+        document.getElementById('place-edit-id').value = '';
+        document.getElementById('modal-place-title').textContent = '場所追加';
+        showModal('modal-place');
+    });
+
+    document.getElementById('place-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('place-edit-id').value;
+        const data = {
+            name: document.getElementById('place-name').value.trim(),
+            purpose: document.getElementById('place-purpose').value.trim(),
+            address: document.getElementById('place-address').value.trim(),
+            date: document.getElementById('place-date').value,
+            notes: document.getElementById('place-notes').value.trim(),
+        };
+
+        if (editId) {
+            await updateDoc(doc(db, 'places', editId), data);
+        } else {
+            await addDoc(collection(db, 'places'), { ...data, done: false, createdAt: Date.now() });
+        }
+        hideModal('modal-place');
+    });
+}
+
+// ----- スケジュール -----
+function initEventsListener() {
+    const q = collection(db, 'events');
+    onSnapshot(q, (snapshot) => {
+        state.events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderEvents();
+    });
+}
+
+function renderEvents() {
+    const container = document.getElementById('timeline');
+
+    if (state.events.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📅</span>
+                <p>引っ越しまでの予定を登録しましょう！</p>
+            </div>`;
+        return;
+    }
+
+    const sorted = [...state.events].sort((a, b) => a.date.localeCompare(b.date));
+
+    container.innerHTML = sorted.map(ev => {
+        let timeClass = '';
+        if (isToday(ev.date)) timeClass = 'today';
+        else if (isPast(ev.date)) timeClass = 'past';
+
+        return `
+        <div class="timeline-item ${timeClass}" data-id="${ev.id}">
+            <div class="timeline-dot"></div>
+            <div class="timeline-card">
+                <div class="timeline-date">${formatDate(ev.date)}</div>
+                <div class="timeline-title">${escapeHtml(ev.title)}</div>
+                ${ev.time ? `<div class="timeline-time">🕐 ${ev.time}</div>` : ''}
+                ${ev.description ? `<div class="timeline-desc">${escapeHtml(ev.description)}</div>` : ''}
+                <div class="timeline-card-actions">
+                    <button class="btn-icon" data-action="edit-event" data-id="${ev.id}" title="編集">✏️</button>
+                    <button class="btn-icon danger" data-action="delete-event" data-id="${ev.id}" title="削除">🗑️</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function initEventForm() {
+    document.getElementById('add-event-btn').addEventListener('click', () => {
+        document.getElementById('event-form').reset();
+        document.getElementById('event-edit-id').value = '';
+        document.getElementById('modal-event-title').textContent = '予定追加';
+        showModal('modal-event');
+    });
+
+    document.getElementById('event-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('event-edit-id').value;
+        const data = {
+            title: document.getElementById('event-title').value.trim(),
+            date: document.getElementById('event-date').value,
+            time: document.getElementById('event-time').value,
+            description: document.getElementById('event-description').value.trim(),
+        };
+
+        if (editId) {
+            await updateDoc(doc(db, 'events', editId), data);
+        } else {
+            await addDoc(collection(db, 'events'), { ...data, createdAt: Date.now() });
+        }
+        hideModal('modal-event');
+    });
+}
+
+// ----- メモ -----
+function initNotesListener() {
+    const q = collection(db, 'notes');
+    onSnapshot(q, (snapshot) => {
+        state.notes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderNotes();
+    });
+}
+
+function renderNotes() {
+    const container = document.getElementById('notes-grid');
+
+    if (state.notes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">📝</span>
+                <p>住所、連絡先、覚え書きなどを自由にメモしましょう！</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = state.notes.map(note => {
+        return `
+        <div class="note-card" data-id="${note.id}" style="border-top-color: ${note.color || '#6366f1'}">
+            <div class="note-card-title">${escapeHtml(note.title)}</div>
+            <div class="note-card-content">${escapeHtml(note.content)}</div>
+            <div class="note-card-actions">
+                <button class="btn-icon" data-action="edit-note" data-id="${note.id}" title="編集">✏️</button>
+                <button class="btn-icon danger" data-action="delete-note" data-id="${note.id}" title="削除">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function initNoteForm() {
+    document.getElementById('add-note-btn').addEventListener('click', () => {
+        document.getElementById('note-form').reset();
+        document.getElementById('note-edit-id').value = '';
+        document.getElementById('note-color').value = '#6366f1';
+        document.getElementById('modal-note-title').textContent = 'メモ追加';
+        document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => s.classList.remove('active'));
+        document.querySelector('#note-color-picker .color-swatch[data-color="#6366f1"]').classList.add('active');
+        showModal('modal-note');
+    });
+
+    document.querySelectorAll('#note-color-picker .color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+            document.getElementById('note-color').value = swatch.dataset.color;
+        });
+    });
+
+    document.getElementById('note-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('note-edit-id').value;
+        const data = {
+            title: document.getElementById('note-title-input').value.trim(),
+            content: document.getElementById('note-content').value.trim(),
+            color: document.getElementById('note-color').value,
+        };
+
+        if (editId) {
+            await updateDoc(doc(db, 'notes', editId), data);
+        } else {
+            await addDoc(collection(db, 'notes'), { ...data, createdAt: Date.now() });
+        }
+        hideModal('modal-note');
+    });
+}
+
+// ----- 予算 -----
+function initExpensesListener() {
+    const q = collection(db, 'expenses');
+    onSnapshot(q, (snapshot) => {
+        state.expenses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderExpenses();
+    });
+}
+
+function renderExpenses() {
+    const container = document.getElementById('expense-list');
+
+    const total = state.expenses.reduce((s, e) => s + Number(e.amount), 0);
+    const paid = state.expenses.filter(e => e.status === 'paid').reduce((s, e) => s + Number(e.amount), 0);
+    const unpaid = total - paid;
+
+    document.getElementById('budget-total').textContent = formatCurrency(total);
+    document.getElementById('budget-paid').textContent = formatCurrency(paid);
+    document.getElementById('budget-unpaid').textContent = formatCurrency(unpaid);
+
+    if (state.expenses.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span class="empty-icon">💴</span>
+                <p>引っ越しにかかる費用を記録しましょう！</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = state.expenses.map(exp => {
+        return `
+        <div class="expense-item" data-id="${exp.id}">
+            <div class="expense-status-dot ${exp.status}"></div>
+            <div class="expense-item-content">
+                <div class="expense-item-name">${escapeHtml(exp.name)}</div>
+                ${exp.note ? `<div class="expense-item-note">${escapeHtml(exp.note)}</div>` : ''}
+            </div>
+            <div class="expense-item-amount">${formatCurrency(exp.amount)}</div>
+            <div class="expense-item-actions">
+                <button class="btn-icon" data-action="toggle-expense" data-id="${exp.id}" title="ステータス切替">
+                    ${exp.status === 'paid' ? '✅' : '⬜'}
+                </button>
+                <button class="btn-icon" data-action="edit-expense" data-id="${exp.id}" title="編集">✏️</button>
+                <button class="btn-icon danger" data-action="delete-expense" data-id="${exp.id}" title="削除">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function initExpenseForm() {
+    document.getElementById('add-expense-btn').addEventListener('click', () => {
+        document.getElementById('expense-form').reset();
+        document.getElementById('expense-edit-id').value = '';
+        document.getElementById('modal-expense-title').textContent = '費用追加';
+        showModal('modal-expense');
+    });
+
+    document.getElementById('expense-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('expense-edit-id').value;
+        const data = {
+            name: document.getElementById('expense-name').value.trim(),
+            amount: document.getElementById('expense-amount').value,
+            status: document.getElementById('expense-status').value,
+            note: document.getElementById('expense-note').value.trim(),
+        };
+
+        if (editId) {
+            await updateDoc(doc(db, 'expenses', editId), data);
+        } else {
+            await addDoc(collection(db, 'expenses'), { ...data, createdAt: Date.now() });
+        }
+        hideModal('modal-expense');
+    });
+}
+
+// ===== イベント委譲（動的要素のクリックハンドラ）=====
+function initEventDelegation() {
+    document.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+
+        switch (action) {
+            // タスク
+            case 'toggle-task': {
+                const task = state.tasks.find(t => t.id === id);
+                if (task) await updateDoc(doc(db, 'tasks', id), { done: !task.done });
+                break;
+            }
+            case 'edit-task': {
+                const task = state.tasks.find(t => t.id === id);
+                if (!task) return;
+                document.getElementById('task-edit-id').value = task.id;
+                document.getElementById('task-name').value = task.name;
+                document.getElementById('task-category').value = task.category;
+                document.getElementById('task-priority').value = task.priority;
+                document.getElementById('task-due').value = task.due || '';
+                document.getElementById('task-memo').value = task.memo || '';
+                document.getElementById('modal-task-title').textContent = 'タスク編集';
+                showModal('modal-task');
+                break;
+            }
+            case 'delete-task': {
+                if (!confirm('このタスクを削除しますか？')) return;
+                await deleteDoc(doc(db, 'tasks', id));
+                break;
+            }
+
+            // 場所
+            case 'toggle-place': {
+                const place = state.places.find(p => p.id === id);
+                if (place) await updateDoc(doc(db, 'places', id), { done: !place.done });
+                break;
+            }
+            case 'edit-place': {
+                const place = state.places.find(p => p.id === id);
+                if (!place) return;
+                document.getElementById('place-edit-id').value = place.id;
+                document.getElementById('place-name').value = place.name;
+                document.getElementById('place-purpose').value = place.purpose || '';
+                document.getElementById('place-address').value = place.address || '';
+                document.getElementById('place-date').value = place.date || '';
+                document.getElementById('place-notes').value = place.notes || '';
+                document.getElementById('modal-place-title').textContent = '場所編集';
+                showModal('modal-place');
+                break;
+            }
+            case 'delete-place': {
+                if (!confirm('この場所を削除しますか？')) return;
+                await deleteDoc(doc(db, 'places', id));
+                break;
+            }
+
+            // スケジュール
+            case 'edit-event': {
+                const ev = state.events.find(e => e.id === id);
+                if (!ev) return;
+                document.getElementById('event-edit-id').value = ev.id;
+                document.getElementById('event-title').value = ev.title;
+                document.getElementById('event-date').value = ev.date;
+                document.getElementById('event-time').value = ev.time || '';
+                document.getElementById('event-description').value = ev.description || '';
+                document.getElementById('modal-event-title').textContent = '予定編集';
+                showModal('modal-event');
+                break;
+            }
+            case 'delete-event': {
+                if (!confirm('この予定を削除しますか？')) return;
+                await deleteDoc(doc(db, 'events', id));
+                break;
+            }
+
+            // メモ
+            case 'edit-note': {
+                const note = state.notes.find(n => n.id === id);
+                if (!note) return;
+                document.getElementById('note-edit-id').value = note.id;
+                document.getElementById('note-title-input').value = note.title;
+                document.getElementById('note-content').value = note.content;
+                document.getElementById('note-color').value = note.color || '#6366f1';
+                document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => {
+                    s.classList.toggle('active', s.dataset.color === (note.color || '#6366f1'));
+                });
+                document.getElementById('modal-note-title').textContent = 'メモ編集';
+                showModal('modal-note');
+                break;
+            }
+            case 'delete-note': {
+                if (!confirm('このメモを削除しますか？')) return;
+                await deleteDoc(doc(db, 'notes', id));
+                break;
+            }
+
+            // 予算
+            case 'toggle-expense': {
+                const exp = state.expenses.find(e => e.id === id);
+                if (exp) await updateDoc(doc(db, 'expenses', id), { status: exp.status === 'paid' ? 'unpaid' : 'paid' });
+                break;
+            }
+            case 'edit-expense': {
+                const exp = state.expenses.find(e => e.id === id);
+                if (!exp) return;
+                document.getElementById('expense-edit-id').value = exp.id;
+                document.getElementById('expense-name').value = exp.name;
+                document.getElementById('expense-amount').value = exp.amount;
+                document.getElementById('expense-status').value = exp.status;
+                document.getElementById('expense-note').value = exp.note || '';
+                document.getElementById('modal-expense-title').textContent = '費用編集';
+                showModal('modal-expense');
+                break;
+            }
+            case 'delete-expense': {
+                if (!confirm('この費用を削除しますか？')) return;
+                await deleteDoc(doc(db, 'expenses', id));
+                break;
+            }
+        }
+    });
+}
+
+// ===== 初期化 =====
+async function init() {
+    initTabs();
+    initModals();
+    initMovingDate();
+    initTaskForm();
+    initPlaceForm();
+    initEventForm();
+    initNoteForm();
+    initExpenseForm();
+    initEventDelegation();
+
+    // Firestoreリアルタイムリスナー開始
+    await loadSettings();
+    initTasksListener();
+    initPlacesListener();
+    initEventsListener();
+    initNotesListener();
+    initExpensesListener();
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', init);
