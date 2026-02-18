@@ -755,8 +755,58 @@ function initEventDelegation() {
     });
 }
 
-// ===== 初期化 =====
-async function init() {
+// ===== パスワード認証 =====
+const PASSWORD_HASH = 'bf4ddaf2e95f25ba2480c9ec5f9950e9f141b2e8d106f712630a49cfbb2204f4';
+
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function initAuth() {
+    // sessionStorageに認証済みフラグがあればスキップ
+    if (sessionStorage.getItem('hikkoshi_auth') === 'ok') {
+        unlockApp();
+        return;
+    }
+
+    const form = document.getElementById('auth-form');
+    const passwordInput = document.getElementById('auth-password');
+    const errorEl = document.getElementById('auth-error');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = passwordInput.value;
+        const hash = await sha256(input);
+
+        if (hash === PASSWORD_HASH) {
+            sessionStorage.setItem('hikkoshi_auth', 'ok');
+            unlockApp();
+        } else {
+            errorEl.textContent = 'パスワードが違います';
+            passwordInput.value = '';
+            passwordInput.focus();
+            // シェイクアニメーション
+            const card = document.querySelector('.auth-card');
+            card.classList.remove('shake');
+            void card.offsetWidth; // reflow
+            card.classList.add('shake');
+        }
+    });
+
+    passwordInput.focus();
+}
+
+async function unlockApp() {
+    document.getElementById('auth-gate').classList.add('hidden');
+    document.getElementById('app-wrapper').style.display = '';
+    await initApp();
+}
+
+// ===== アプリ初期化（認証後に実行）=====
+async function initApp() {
     initTabs();
     initModals();
     initMovingDate();
@@ -779,4 +829,4 @@ async function init() {
     setInterval(updateCountdown, 1000);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', initAuth);

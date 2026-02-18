@@ -14,191 +14,98 @@
 </head>
 
 <body>
-    <!-- ヘッダー：カウントダウン -->
-    <header class="header">
-        <div class="header-content">
-            <div class="header-title">
-                <h1>🏠 さゆりちゃん引っ越しプロジェクト</h1>
-                <p class="subtitle">3月末の引っ越しを完璧に！</p>
-            </div>
-            <div class="countdown-section">
-                <div class="countdown-card">
-                    <div class="countdown-number" id="countdown-days">--</div>
-                    <div class="countdown-label">日</div>
+    <!-- ===== パスワードゲート ===== -->
+    <div class="auth-gate" id="auth-gate">
+        <div class="auth-card">
+            <div class="auth-icon">🔒</div>
+            <h2 class="auth-title">引っ越しプロジェクト</h2>
+            <p class="auth-subtitle">パスワードを入力してください</p>
+            <form id="auth-form">
+                <div class="auth-input-group">
+                    <input type="password" id="auth-password" placeholder="パスワード" autocomplete="off" required>
+                    <button type="submit" class="btn btn-primary">入る</button>
                 </div>
-                <div class="countdown-card">
-                    <div class="countdown-number" id="countdown-hours">--</div>
-                    <div class="countdown-label">時間</div>
-                </div>
-                <div class="countdown-card">
-                    <div class="countdown-number" id="countdown-minutes">--</div>
-                    <div class="countdown-label">分</div>
-                </div>
-                <div class="countdown-card">
-                    <div class="countdown-number" id="countdown-seconds">--</div>
-                    <div class="countdown-label">秒</div>
-                </div>
-            </div>
-            <div class="moving-date-setting">
-                <label for="moving-date-input">引っ越し日：</label>
-                <input type="date" id="moving-date-input" />
-                <button id="save-date-btn" class="btn btn-small">設定</button>
-            </div>
+                <p class="auth-error" id="auth-error"></p>
+            </form>
         </div>
-        <!-- 全体進捗バー -->
-        <div class="progress-bar-container">
-            <div class="progress-bar" id="overall-progress-bar">
-                <span class="progress-text" id="overall-progress-text">0%</span>
-            </div>
-        </div>
-    </header>
+    </div>
 
-    <!-- タブナビゲーション -->
-    <nav class="tab-nav">
-        <button class="tab-btn active" data-tab="tasks">
-            <span class="tab-icon">✅</span>
-            <span class="tab-label">やることリスト</span>
-        </button>
-        <button class="tab-btn" data-tab="places">
-            <span class="tab-icon">📍</span>
-            <span class="tab-label">行く場所</span>
-        </button>
-        <button class="tab-btn" data-tab="schedule">
-            <span class="tab-icon">📅</span>
-            <span class="tab-label">スケジュール</span>
-        </button>
-        <button class="tab-btn" data-tab="notes">
-            <span class="tab-icon">📝</span>
-            <span class="tab-label">メモ帳</span>
-        </button>
-        <button class="tab-btn" data-tab="budget">
-            <span class="tab-icon">💰</span>
-            <span class="tab-label">予算</span>
-        </button>
-    </nav>
+    <!-- ===== アプリ本体（認証後に表示）===== -->
+    <div class="app-wrapper" id="app-wrapper" style="display:none;">
 
-    <!-- メインコンテンツ -->
-    <main class="main-content">
+        <!-- ヘッダー：カウントダウン -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>🏠 さゆりちゃん引っ越しプロジェクト</h1>
+                    <p class="subtitle">3月末の引っ越しを完璧に！</p>
+                </div>
+                <div class="countdown-section">
+                    <div class="countdown-card">
+                        <div class="countdown-number" id="countdown-days">--</div>
+                        <div class="countdown-label">日</div>
+                    </div>
+                    <div class="countdown-card">
+                        <div class="countdown-number" id="countdown-hours">--</div>
+                        <div class="countdown-label">時間</div>
+                    </div>
+                    <div class="countdown-card">
+                        <div class="countdown-number" id="countdown-minutes">--</div>
+                        <div class="countdown-label">分</div>
+                    </div>
+                    <div class="countdown-card">
+                        <div class="countdown-number" id="countdown-seconds">--</div>
+                        <div class="countdown-label">秒</div>
+                    </div>
+                </div>
+                <div class="moving-date-setting">
+                    <label for="moving-date-input">引っ越し日：</label>
+                    <input type="date" id="moving-date-input" />
+                    <button id="save-date-btn" class="btn btn-small">設定</button>
+                </div>
+            </div>
+            <!-- 全体進捗バー -->
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="overall-progress-bar">
+                    <span class="progress-text" id="overall-progress-text">0%</span>
+                </div>
+            </div>
+        </header>
 
-        <!-- ===== やることリスト ===== -->
-        <section class="tab-panel active" id="panel-tasks">
-            <div class="panel-header">
-                <h2>✅ やることリスト</h2>
-                <div class="panel-actions">
-                    <select id="task-filter-category" class="select-input">
-                        <option value="all">すべてのカテゴリ</option>
-                        <option value="housing">🏠 住居関連</option>
-                        <option value="paperwork">📋 届出・手続き</option>
-                        <option value="packing">📦 荷造り・整理</option>
-                        <option value="utilities">💡 ライフライン</option>
-                        <option value="finance">💰 費用・契約</option>
-                        <option value="address">📬 住所変更通知</option>
-                        <option value="other">🔧 その他</option>
-                    </select>
-                    <button class="btn btn-primary" id="add-task-btn">＋ タスク追加</button>
-                </div>
-            </div>
-            <div class="task-stats">
-                <span class="stat-item" id="task-stat-total">全体: 0</span>
-                <span class="stat-item stat-done" id="task-stat-done">完了: 0</span>
-                <span class="stat-item stat-remaining" id="task-stat-remaining">残り: 0</span>
-            </div>
-            <div class="task-list" id="task-list">
-                <div class="empty-state">
-                    <span class="empty-icon">📋</span>
-                    <p>まだタスクがありません。<br>「＋ タスク追加」ボタンから始めましょう！</p>
-                </div>
-            </div>
-        </section>
+        <!-- タブナビゲーション -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="tasks">
+                <span class="tab-icon">✅</span>
+                <span class="tab-label">やることリスト</span>
+            </button>
+            <button class="tab-btn" data-tab="places">
+                <span class="tab-icon">📍</span>
+                <span class="tab-label">行く場所</span>
+            </button>
+            <button class="tab-btn" data-tab="schedule">
+                <span class="tab-icon">📅</span>
+                <span class="tab-label">スケジュール</span>
+            </button>
+            <button class="tab-btn" data-tab="notes">
+                <span class="tab-icon">📝</span>
+                <span class="tab-label">メモ帳</span>
+            </button>
+            <button class="tab-btn" data-tab="budget">
+                <span class="tab-icon">💰</span>
+                <span class="tab-label">予算</span>
+            </button>
+        </nav>
 
-        <!-- ===== 行く場所リスト ===== -->
-        <section class="tab-panel" id="panel-places">
-            <div class="panel-header">
-                <h2>📍 行く場所リスト</h2>
-                <button class="btn btn-primary" id="add-place-btn">＋ 場所追加</button>
-            </div>
-            <div class="place-list" id="place-list">
-                <div class="empty-state">
-                    <span class="empty-icon">🗺️</span>
-                    <p>訪問先をリストアップしましょう！<br>役所、不動産屋、銀行など</p>
-                </div>
-            </div>
-        </section>
+        <!-- メインコンテンツ -->
+        <main class="main-content">
 
-        <!-- ===== スケジュール ===== -->
-        <section class="tab-panel" id="panel-schedule">
-            <div class="panel-header">
-                <h2>📅 スケジュール</h2>
-                <button class="btn btn-primary" id="add-event-btn">＋ 予定追加</button>
-            </div>
-            <div class="timeline" id="timeline">
-                <div class="empty-state">
-                    <span class="empty-icon">📅</span>
-                    <p>引っ越しまでの予定を登録しましょう！</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ===== メモ帳 ===== -->
-        <section class="tab-panel" id="panel-notes">
-            <div class="panel-header">
-                <h2>📝 メモ帳</h2>
-                <button class="btn btn-primary" id="add-note-btn">＋ メモ追加</button>
-            </div>
-            <div class="notes-grid" id="notes-grid">
-                <div class="empty-state">
-                    <span class="empty-icon">📝</span>
-                    <p>住所、連絡先、覚え書きなどを自由にメモしましょう！</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ===== 予算トラッカー ===== -->
-        <section class="tab-panel" id="panel-budget">
-            <div class="panel-header">
-                <h2>💰 予算トラッカー</h2>
-                <button class="btn btn-primary" id="add-expense-btn">＋ 費用追加</button>
-            </div>
-            <div class="budget-summary" id="budget-summary">
-                <div class="budget-card total">
-                    <div class="budget-card-label">合計費用</div>
-                    <div class="budget-card-value" id="budget-total">¥0</div>
-                </div>
-                <div class="budget-card paid">
-                    <div class="budget-card-label">支払済み</div>
-                    <div class="budget-card-value" id="budget-paid">¥0</div>
-                </div>
-                <div class="budget-card unpaid">
-                    <div class="budget-card-label">未払い</div>
-                    <div class="budget-card-value" id="budget-unpaid">¥0</div>
-                </div>
-            </div>
-            <div class="expense-list" id="expense-list">
-                <div class="empty-state">
-                    <span class="empty-icon">💴</span>
-                    <p>引っ越しにかかる費用を記録しましょう！</p>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- ===== モーダル：タスク追加 ===== -->
-    <div class="modal-overlay" id="modal-task">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-task-title">タスク追加</h3>
-                <button class="modal-close" data-close="modal-task">✕</button>
-            </div>
-            <form id="task-form">
-                <input type="hidden" id="task-edit-id" value="">
-                <div class="form-group">
-                    <label for="task-name">タスク名 *</label>
-                    <input type="text" id="task-name" required placeholder="例：転出届を提出する">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="task-category">カテゴリ</label>
-                        <select id="task-category" class="select-input">
+            <!-- ===== やることリスト ===== -->
+            <section class="tab-panel active" id="panel-tasks">
+                <div class="panel-header">
+                    <h2>✅ やることリスト</h2>
+                    <div class="panel-actions">
+                        <select id="task-filter-category" class="select-input">
+                            <option value="all">すべてのカテゴリ</option>
                             <option value="housing">🏠 住居関連</option>
                             <option value="paperwork">📋 届出・手続き</option>
                             <option value="packing">📦 荷造り・整理</option>
@@ -207,184 +114,298 @@
                             <option value="address">📬 住所変更通知</option>
                             <option value="other">🔧 その他</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="task-priority">優先度</label>
-                        <select id="task-priority" class="select-input">
-                            <option value="high">🔴 高</option>
-                            <option value="medium" selected>🟡 中</option>
-                            <option value="low">🟢 低</option>
-                        </select>
+                        <button class="btn btn-primary" id="add-task-btn">＋ タスク追加</button>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="task-due">期日</label>
-                    <input type="date" id="task-due">
+                <div class="task-stats">
+                    <span class="stat-item" id="task-stat-total">全体: 0</span>
+                    <span class="stat-item stat-done" id="task-stat-done">完了: 0</span>
+                    <span class="stat-item stat-remaining" id="task-stat-remaining">残り: 0</span>
                 </div>
-                <div class="form-group">
-                    <label for="task-memo">メモ</label>
-                    <textarea id="task-memo" rows="2" placeholder="補足情報があれば"></textarea>
+                <div class="task-list" id="task-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">📋</span>
+                        <p>まだタスクがありません。<br>「＋ タスク追加」ボタンから始めましょう！</p>
+                    </div>
                 </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-ghost" data-close="modal-task">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </section>
 
-    <!-- ===== モーダル：場所追加 ===== -->
-    <div class="modal-overlay" id="modal-place">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-place-title">場所追加</h3>
-                <button class="modal-close" data-close="modal-place">✕</button>
-            </div>
-            <form id="place-form">
-                <input type="hidden" id="place-edit-id" value="">
-                <div class="form-group">
-                    <label for="place-name">場所名 *</label>
-                    <input type="text" id="place-name" required placeholder="例：市区町村役場">
+            <!-- ===== 行く場所リスト ===== -->
+            <section class="tab-panel" id="panel-places">
+                <div class="panel-header">
+                    <h2>📍 行く場所リスト</h2>
+                    <button class="btn btn-primary" id="add-place-btn">＋ 場所追加</button>
                 </div>
-                <div class="form-group">
-                    <label for="place-purpose">用件</label>
-                    <input type="text" id="place-purpose" placeholder="例：転出届の提出">
+                <div class="place-list" id="place-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">🗺️</span>
+                        <p>訪問先をリストアップしましょう！<br>役所、不動産屋、銀行など</p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="place-address">住所・場所</label>
-                    <input type="text" id="place-address" placeholder="例：○○市△△町1-2-3">
-                </div>
-                <div class="form-group">
-                    <label for="place-date">訪問予定日</label>
-                    <input type="date" id="place-date">
-                </div>
-                <div class="form-group">
-                    <label for="place-notes">備考</label>
-                    <textarea id="place-notes" rows="2" placeholder="持参物や注意事項など"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-ghost" data-close="modal-place">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </section>
 
-    <!-- ===== モーダル：予定追加 ===== -->
-    <div class="modal-overlay" id="modal-event">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-event-title">予定追加</h3>
-                <button class="modal-close" data-close="modal-event">✕</button>
-            </div>
-            <form id="event-form">
-                <input type="hidden" id="event-edit-id" value="">
-                <div class="form-group">
-                    <label for="event-title">予定名 *</label>
-                    <input type="text" id="event-title" required placeholder="例：引っ越し業者打ち合わせ">
+            <!-- ===== スケジュール ===== -->
+            <section class="tab-panel" id="panel-schedule">
+                <div class="panel-header">
+                    <h2>📅 スケジュール</h2>
+                    <button class="btn btn-primary" id="add-event-btn">＋ 予定追加</button>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="event-date">日付 *</label>
-                        <input type="date" id="event-date" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="event-time">時間</label>
-                        <input type="time" id="event-time">
+                <div class="timeline" id="timeline">
+                    <div class="empty-state">
+                        <span class="empty-icon">📅</span>
+                        <p>引っ越しまでの予定を登録しましょう！</p>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="event-description">詳細</label>
-                    <textarea id="event-description" rows="2" placeholder="場所や持ち物など"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-ghost" data-close="modal-event">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </section>
 
-    <!-- ===== モーダル：メモ追加 ===== -->
-    <div class="modal-overlay" id="modal-note">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-note-title">メモ追加</h3>
-                <button class="modal-close" data-close="modal-note">✕</button>
-            </div>
-            <form id="note-form">
-                <input type="hidden" id="note-edit-id" value="">
-                <div class="form-group">
-                    <label for="note-title-input">タイトル *</label>
-                    <input type="text" id="note-title-input" required placeholder="例：新居の住所">
+            <!-- ===== メモ帳 ===== -->
+            <section class="tab-panel" id="panel-notes">
+                <div class="panel-header">
+                    <h2>📝 メモ帳</h2>
+                    <button class="btn btn-primary" id="add-note-btn">＋ メモ追加</button>
                 </div>
-                <div class="form-group">
-                    <label for="note-color">色</label>
-                    <div class="color-picker" id="note-color-picker">
-                        <button type="button" class="color-swatch active" data-color="#6366f1"
-                            style="background:#6366f1"></button>
-                        <button type="button" class="color-swatch" data-color="#ec4899"
-                            style="background:#ec4899"></button>
-                        <button type="button" class="color-swatch" data-color="#14b8a6"
-                            style="background:#14b8a6"></button>
-                        <button type="button" class="color-swatch" data-color="#f59e0b"
-                            style="background:#f59e0b"></button>
-                        <button type="button" class="color-swatch" data-color="#8b5cf6"
-                            style="background:#8b5cf6"></button>
-                        <button type="button" class="color-swatch" data-color="#06b6d4"
-                            style="background:#06b6d4"></button>
+                <div class="notes-grid" id="notes-grid">
+                    <div class="empty-state">
+                        <span class="empty-icon">📝</span>
+                        <p>住所、連絡先、覚え書きなどを自由にメモしましょう！</p>
                     </div>
-                    <input type="hidden" id="note-color" value="#6366f1">
                 </div>
-                <div class="form-group">
-                    <label for="note-content">内容 *</label>
-                    <textarea id="note-content" rows="5" required placeholder="自由にメモを書いてください"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-ghost" data-close="modal-note">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </section>
 
-    <!-- ===== モーダル：費用追加 ===== -->
-    <div class="modal-overlay" id="modal-expense">
-        <div class="modal">
-            <div class="modal-header">
-                <h3 id="modal-expense-title">費用追加</h3>
-                <button class="modal-close" data-close="modal-expense">✕</button>
+            <!-- ===== 予算トラッカー ===== -->
+            <section class="tab-panel" id="panel-budget">
+                <div class="panel-header">
+                    <h2>💰 予算トラッカー</h2>
+                    <button class="btn btn-primary" id="add-expense-btn">＋ 費用追加</button>
+                </div>
+                <div class="budget-summary" id="budget-summary">
+                    <div class="budget-card total">
+                        <div class="budget-card-label">合計費用</div>
+                        <div class="budget-card-value" id="budget-total">¥0</div>
+                    </div>
+                    <div class="budget-card paid">
+                        <div class="budget-card-label">支払済み</div>
+                        <div class="budget-card-value" id="budget-paid">¥0</div>
+                    </div>
+                    <div class="budget-card unpaid">
+                        <div class="budget-card-label">未払い</div>
+                        <div class="budget-card-value" id="budget-unpaid">¥0</div>
+                    </div>
+                </div>
+                <div class="expense-list" id="expense-list">
+                    <div class="empty-state">
+                        <span class="empty-icon">💴</span>
+                        <p>引っ越しにかかる費用を記録しましょう！</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- ===== モーダル：タスク追加 ===== -->
+        <div class="modal-overlay" id="modal-task">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-task-title">タスク追加</h3>
+                    <button class="modal-close" data-close="modal-task">✕</button>
+                </div>
+                <form id="task-form">
+                    <input type="hidden" id="task-edit-id" value="">
+                    <div class="form-group">
+                        <label for="task-name">タスク名 *</label>
+                        <input type="text" id="task-name" required placeholder="例：転出届を提出する">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="task-category">カテゴリ</label>
+                            <select id="task-category" class="select-input">
+                                <option value="housing">🏠 住居関連</option>
+                                <option value="paperwork">📋 届出・手続き</option>
+                                <option value="packing">📦 荷造り・整理</option>
+                                <option value="utilities">💡 ライフライン</option>
+                                <option value="finance">💰 費用・契約</option>
+                                <option value="address">📬 住所変更通知</option>
+                                <option value="other">🔧 その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="task-priority">優先度</label>
+                            <select id="task-priority" class="select-input">
+                                <option value="high">🔴 高</option>
+                                <option value="medium" selected>🟡 中</option>
+                                <option value="low">🟢 低</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-due">期日</label>
+                        <input type="date" id="task-due">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-memo">メモ</label>
+                        <textarea id="task-memo" rows="2" placeholder="補足情報があれば"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" data-close="modal-task">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
             </div>
-            <form id="expense-form">
-                <input type="hidden" id="expense-edit-id" value="">
-                <div class="form-group">
-                    <label for="expense-name">項目名 *</label>
-                    <input type="text" id="expense-name" required placeholder="例：引っ越し業者代">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="expense-amount">金額（円）*</label>
-                        <input type="number" id="expense-amount" required min="0" placeholder="50000">
-                    </div>
-                    <div class="form-group">
-                        <label for="expense-status">ステータス</label>
-                        <select id="expense-status" class="select-input">
-                            <option value="unpaid">未払い</option>
-                            <option value="paid">支払済み</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="expense-note">備考</label>
-                    <input type="text" id="expense-note" placeholder="メモがあれば">
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-ghost" data-close="modal-expense">キャンセル</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
         </div>
-    </div>
+
+        <!-- ===== モーダル：場所追加 ===== -->
+        <div class="modal-overlay" id="modal-place">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-place-title">場所追加</h3>
+                    <button class="modal-close" data-close="modal-place">✕</button>
+                </div>
+                <form id="place-form">
+                    <input type="hidden" id="place-edit-id" value="">
+                    <div class="form-group">
+                        <label for="place-name">場所名 *</label>
+                        <input type="text" id="place-name" required placeholder="例：市区町村役場">
+                    </div>
+                    <div class="form-group">
+                        <label for="place-purpose">用件</label>
+                        <input type="text" id="place-purpose" placeholder="例：転出届の提出">
+                    </div>
+                    <div class="form-group">
+                        <label for="place-address">住所・場所</label>
+                        <input type="text" id="place-address" placeholder="例：○○市△△町1-2-3">
+                    </div>
+                    <div class="form-group">
+                        <label for="place-date">訪問予定日</label>
+                        <input type="date" id="place-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="place-notes">備考</label>
+                        <textarea id="place-notes" rows="2" placeholder="持参物や注意事項など"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" data-close="modal-place">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== モーダル：予定追加 ===== -->
+        <div class="modal-overlay" id="modal-event">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-event-title">予定追加</h3>
+                    <button class="modal-close" data-close="modal-event">✕</button>
+                </div>
+                <form id="event-form">
+                    <input type="hidden" id="event-edit-id" value="">
+                    <div class="form-group">
+                        <label for="event-title">予定名 *</label>
+                        <input type="text" id="event-title" required placeholder="例：引っ越し業者打ち合わせ">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="event-date">日付 *</label>
+                            <input type="date" id="event-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="event-time">時間</label>
+                            <input type="time" id="event-time">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="event-description">詳細</label>
+                        <textarea id="event-description" rows="2" placeholder="場所や持ち物など"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" data-close="modal-event">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== モーダル：メモ追加 ===== -->
+        <div class="modal-overlay" id="modal-note">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-note-title">メモ追加</h3>
+                    <button class="modal-close" data-close="modal-note">✕</button>
+                </div>
+                <form id="note-form">
+                    <input type="hidden" id="note-edit-id" value="">
+                    <div class="form-group">
+                        <label for="note-title-input">タイトル *</label>
+                        <input type="text" id="note-title-input" required placeholder="例：新居の住所">
+                    </div>
+                    <div class="form-group">
+                        <label for="note-color">色</label>
+                        <div class="color-picker" id="note-color-picker">
+                            <button type="button" class="color-swatch active" data-color="#6366f1"
+                                style="background:#6366f1"></button>
+                            <button type="button" class="color-swatch" data-color="#ec4899"
+                                style="background:#ec4899"></button>
+                            <button type="button" class="color-swatch" data-color="#14b8a6"
+                                style="background:#14b8a6"></button>
+                            <button type="button" class="color-swatch" data-color="#f59e0b"
+                                style="background:#f59e0b"></button>
+                            <button type="button" class="color-swatch" data-color="#8b5cf6"
+                                style="background:#8b5cf6"></button>
+                            <button type="button" class="color-swatch" data-color="#06b6d4"
+                                style="background:#06b6d4"></button>
+                        </div>
+                        <input type="hidden" id="note-color" value="#6366f1">
+                    </div>
+                    <div class="form-group">
+                        <label for="note-content">内容 *</label>
+                        <textarea id="note-content" rows="5" required placeholder="自由にメモを書いてください"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" data-close="modal-note">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== モーダル：費用追加 ===== -->
+        <div class="modal-overlay" id="modal-expense">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 id="modal-expense-title">費用追加</h3>
+                    <button class="modal-close" data-close="modal-expense">✕</button>
+                </div>
+                <form id="expense-form">
+                    <input type="hidden" id="expense-edit-id" value="">
+                    <div class="form-group">
+                        <label for="expense-name">項目名 *</label>
+                        <input type="text" id="expense-name" required placeholder="例：引っ越し業者代">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expense-amount">金額（円）*</label>
+                            <input type="number" id="expense-amount" required min="0" placeholder="50000">
+                        </div>
+                        <div class="form-group">
+                            <label for="expense-status">ステータス</label>
+                            <select id="expense-status" class="select-input">
+                                <option value="unpaid">未払い</option>
+                                <option value="paid">支払済み</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="expense-note">備考</label>
+                        <input type="text" id="expense-note" placeholder="メモがあれば">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-ghost" data-close="modal-expense">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div><!-- /app-wrapper -->
 
     <!-- Firebase SDK -->
     <script type="module" src="app.js"></script>
