@@ -266,6 +266,8 @@
                 </div>
                 <form id="place-form">
                     <input type="hidden" id="place-edit-id" value="">
+                    <input type="hidden" id="place-lat" value="">
+                    <input type="hidden" id="place-lng" value="">
                     <div class="form-group">
                         <label for="place-name">場所名 *</label>
                         <input type="text" id="place-name" required placeholder="例：市区町村役場">
@@ -277,6 +279,11 @@
                     <div class="form-group">
                         <label for="place-address">住所・場所</label>
                         <input type="text" id="place-address" placeholder="例：○○市△△町1-2-3">
+                    </div>
+                    <div class="form-group">
+                        <label>📍 地図でピンを置く <small style="color:var(--text-muted)">(タップで位置指定)</small></label>
+                        <div id="place-map-picker" class="place-map-picker"></div>
+                        <p id="place-coords-info" class="coords-info">タップして位置を指定してください</p>
                     </div>
                     <div class="form-group">
                         <label for="place-date">訪問予定日</label>

@@ -403,18 +403,15 @@ function renderPlaces() {
 // ----- マップ -----
 let placesMap = null;
 let mapMarkers = [];
-const geocodeCache = {};
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+let pickerMap = null;
+let pickerMarker = null;
 
 function initPlacesMap() {
     const mapEl = document.getElementById('places-map');
     if (!mapEl || placesMap) return;
 
     placesMap = L.map('places-map', {
-        center: [35.6812, 139.7671], // 東京デフォルト
+        center: [35.6812, 139.7671],
         zoom: 12,
         zoomControl: true,
         attributionControl: true,
@@ -426,46 +423,96 @@ function initPlacesMap() {
     }).addTo(placesMap);
 }
 
-async function geocodeAddress(address) {
-    if (geocodeCache[address]) return geocodeCache[address];
+function initPickerMap() {
+    const el = document.getElementById('place-map-picker');
+    if (!el) return;
 
-    try {
-        // Nominatimは1秒に1リクエストまで
-        await sleep(1100);
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=jp&accept-language=ja`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data && data.length > 0) {
-            const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-            geocodeCache[address] = result;
-            return result;
-        }
-    } catch (err) {
-        console.warn('ジオコーディング失敗:', address, err);
+    // 既にマップがあれば再利用
+    if (pickerMap) {
+        pickerMap.invalidateSize();
+        return;
     }
-    return null;
+
+    pickerMap = L.map('place-map-picker', {
+        center: [35.6812, 139.7671],
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: false,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OSM',
+        maxZoom: 18,
+    }).addTo(pickerMap);
+
+    pickerMap.on('click', function (e) {
+        const { lat, lng } = e.latlng;
+        document.getElementById('place-lat').value = lat.toFixed(6);
+        document.getElementById('place-lng').value = lng.toFixed(6);
+
+        const info = document.getElementById('place-coords-info');
+        info.textContent = `✅ 位置を設定しました (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+        info.classList.add('has-coords');
+
+        if (pickerMarker) {
+            pickerMarker.setLatLng([lat, lng]);
+        } else {
+            pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+        }
+    });
 }
 
-async function updatePlacesMap() {
+function resetPickerMap(lat, lng) {
+    const info = document.getElementById('place-coords-info');
+
+    if (lat && lng) {
+        document.getElementById('place-lat').value = lat;
+        document.getElementById('place-lng').value = lng;
+        info.textContent = `✅ 位置設定済み (${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)})`;
+        info.classList.add('has-coords');
+
+        if (pickerMap) {
+            pickerMap.setView([parseFloat(lat), parseFloat(lng)], 15);
+            if (pickerMarker) {
+                pickerMarker.setLatLng([parseFloat(lat), parseFloat(lng)]);
+            } else {
+                pickerMarker = L.marker([parseFloat(lat), parseFloat(lng)]).addTo(pickerMap);
+            }
+        }
+    } else {
+        document.getElementById('place-lat').value = '';
+        document.getElementById('place-lng').value = '';
+        info.textContent = 'タップして位置を指定してください';
+        info.classList.remove('has-coords');
+
+        if (pickerMarker && pickerMap) {
+            pickerMap.removeLayer(pickerMarker);
+            pickerMarker = null;
+        }
+        if (pickerMap) {
+            pickerMap.setView([35.6812, 139.7671], 12);
+        }
+    }
+}
+
+function updatePlacesMap() {
     if (!placesMap) return;
 
     // 既存マーカーをクリア
     mapMarkers.forEach(m => placesMap.removeLayer(m));
     mapMarkers = [];
 
-    // 住所があるplaceをフィルタ
-    const placesWithAddress = state.places.filter(p => p.address && p.address.trim());
+    // lat/lngがあるplaceをフィルタ
+    const placesWithCoords = state.places.filter(p => p.lat && p.lng);
 
-    if (placesWithAddress.length === 0) {
-        return;
-    }
+    if (placesWithCoords.length === 0) return;
 
     const bounds = [];
 
-    for (const place of placesWithAddress) {
-        const coords = await geocodeAddress(place.address);
-        if (!coords) continue;
+    for (const place of placesWithCoords) {
+        const lat = parseFloat(place.lat);
+        const lng = parseFloat(place.lng);
+        if (isNaN(lat) || isNaN(lng)) continue;
 
         const icon = L.divIcon({
             className: 'custom-pin',
@@ -483,7 +530,7 @@ async function updatePlacesMap() {
             popupAnchor: [0, -28],
         });
 
-        const marker = L.marker([coords.lat, coords.lng], { icon })
+        const marker = L.marker([lat, lng], { icon })
             .addTo(placesMap)
             .bindPopup(`
                 <div class="popup-name">${escapeHtml(place.name)}</div>
@@ -493,10 +540,9 @@ async function updatePlacesMap() {
             `);
 
         mapMarkers.push(marker);
-        bounds.push([coords.lat, coords.lng]);
+        bounds.push([lat, lng]);
     }
 
-    // 全マーカーが見えるように調整
     if (bounds.length > 0) {
         if (bounds.length === 1) {
             placesMap.setView(bounds[0], 15);
@@ -511,7 +557,13 @@ function initPlaceForm() {
         document.getElementById('place-form').reset();
         document.getElementById('place-edit-id').value = '';
         document.getElementById('modal-place-title').textContent = '場所追加';
+        resetPickerMap(null, null);
         showModal('modal-place');
+        // モーダル表示後にピッカーマップを初期化
+        setTimeout(() => {
+            initPickerMap();
+            if (pickerMap) pickerMap.invalidateSize();
+        }, 300);
     });
 
     document.getElementById('place-form').addEventListener('submit', async (e) => {
@@ -521,6 +573,8 @@ function initPlaceForm() {
             name: document.getElementById('place-name').value.trim(),
             purpose: document.getElementById('place-purpose').value.trim(),
             address: document.getElementById('place-address').value.trim(),
+            lat: document.getElementById('place-lat').value || null,
+            lng: document.getElementById('place-lng').value || null,
             date: document.getElementById('place-date').value,
             notes: document.getElementById('place-notes').value.trim(),
         };
@@ -804,7 +858,15 @@ function initEventDelegation() {
                 document.getElementById('place-date').value = place.date || '';
                 document.getElementById('place-notes').value = place.notes || '';
                 document.getElementById('modal-place-title').textContent = '場所編集';
+                resetPickerMap(place.lat || null, place.lng || null);
                 showModal('modal-place');
+                setTimeout(() => {
+                    initPickerMap();
+                    if (pickerMap) pickerMap.invalidateSize();
+                    if (place.lat && place.lng && pickerMap) {
+                        pickerMap.setView([parseFloat(place.lat), parseFloat(place.lng)], 15);
+                    }
+                }, 300);
                 break;
             }
             case 'delete-place': {
