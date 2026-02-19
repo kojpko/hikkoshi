@@ -445,21 +445,73 @@ function initPickerMap() {
         maxZoom: 18,
     }).addTo(pickerMap);
 
+    // 地図タップでピン設置
     pickerMap.on('click', function (e) {
-        const { lat, lng } = e.latlng;
-        document.getElementById('place-lat').value = lat.toFixed(6);
-        document.getElementById('place-lng').value = lng.toFixed(6);
+        setPickerPin(e.latlng.lat, e.latlng.lng);
+    });
+
+    // 検索機能
+    const searchInput = document.getElementById('map-search-input');
+    const searchBtn = document.getElementById('map-search-btn');
+
+    async function doSearch() {
+        const query = searchInput.value.trim();
+        if (!query) return;
 
         const info = document.getElementById('place-coords-info');
-        info.textContent = `✅ 位置を設定しました (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-        info.classList.add('has-coords');
+        searchBtn.textContent = '検索中…';
+        searchBtn.classList.add('searching');
+        info.textContent = '🔍 検索中…';
+        info.classList.remove('has-coords');
 
-        if (pickerMarker) {
-            pickerMarker.setLatLng([lat, lng]);
-        } else {
-            pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=jp&accept-language=ja`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                setPickerPin(lat, lng);
+                pickerMap.setView([lat, lng], 16);
+                info.textContent = `✅ ${data[0].display_name.substring(0, 40)}…`;
+                info.classList.add('has-coords');
+            } else {
+                info.textContent = '❌ 見つかりませんでした。別のキーワードで試してください';
+                info.classList.remove('has-coords');
+            }
+        } catch (err) {
+            info.textContent = '❌ 検索に失敗しました。もう一度お試しください';
+            info.classList.remove('has-coords');
+            console.warn('地図検索エラー:', err);
+        } finally {
+            searchBtn.textContent = '検索';
+            searchBtn.classList.remove('searching');
+        }
+    }
+
+    searchBtn.addEventListener('click', doSearch);
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            doSearch();
         }
     });
+}
+
+function setPickerPin(lat, lng) {
+    document.getElementById('place-lat').value = lat.toFixed(6);
+    document.getElementById('place-lng').value = lng.toFixed(6);
+
+    const info = document.getElementById('place-coords-info');
+    info.textContent = `✅ 位置を設定しました (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    info.classList.add('has-coords');
+
+    if (pickerMarker) {
+        pickerMarker.setLatLng([lat, lng]);
+    } else {
+        pickerMarker = L.marker([lat, lng]).addTo(pickerMap);
+    }
 }
 
 function resetPickerMap(lat, lng) {

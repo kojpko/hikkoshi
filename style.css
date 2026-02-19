@@ -728,6 +728,39 @@ body::before {
     padding: 20px;
 }
 
+.map-search-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.map-search-bar input {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    font-family: var(--font-family);
+}
+
+.map-search-bar input::placeholder {
+    color: var(--text-muted);
+}
+
+.btn-sm {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.map-search-bar .searching {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
 .place-map-picker {
     width: 100%;
     height: 200px;

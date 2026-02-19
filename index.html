@@ -281,9 +281,13 @@
                         <input type="text" id="place-address" placeholder="例：○○市△△町1-2-3">
                     </div>
                     <div class="form-group">
-                        <label>📍 地図でピンを置く <small style="color:var(--text-muted)">(タップで位置指定)</small></label>
+                        <label>📍 地図で位置を指定</label>
+                        <div class="map-search-bar">
+                            <input type="text" id="map-search-input" placeholder="場所名や住所を入力して検索" autocomplete="off">
+                            <button type="button" id="map-search-btn" class="btn btn-primary btn-sm">検索</button>
+                        </div>
                         <div id="place-map-picker" class="place-map-picker"></div>
-                        <p id="place-coords-info" class="coords-info">タップして位置を指定してください</p>
+                        <p id="place-coords-info" class="coords-info">検索するか、地図をタップして位置を指定</p>
                     </div>
                     <div class="form-group">
                         <label for="place-date">訪問予定日</label>
