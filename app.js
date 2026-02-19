@@ -747,6 +747,7 @@ function renderNotes() {
     container.innerHTML = state.notes.map(note => {
         return `
         <div class="note-card" data-id="${note.id}" style="border-top-color: ${note.color || '#6366f1'}">
+            ${note.image ? `<img class="note-card-image" src="${note.image}" alt="メモ画像" data-action="view-image" data-src="${note.image}">` : ''}
             <div class="note-card-title">${escapeHtml(note.title)}</div>
             <div class="note-card-content">${escapeHtml(note.content)}</div>
             <div class="note-card-actions">
@@ -757,7 +758,55 @@ function renderNotes() {
     }).join('');
 }
 
+// 画像をリサイズ＆圧縮してbase64に変換
+function compressImage(file, maxWidth = 800, quality = 0.6) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width;
+                let h = img.height;
+
+                if (w > maxWidth) {
+                    h = Math.round(h * maxWidth / w);
+                    w = maxWidth;
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                resolve(dataUrl);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+// 画像フルスクリーン表示
+function showImageLightbox(src) {
+    const lightbox = document.createElement('div');
+    lightbox.className = 'image-lightbox';
+    lightbox.innerHTML = `<img src="${src}" alt="画像">`;
+    lightbox.addEventListener('click', () => lightbox.remove());
+    document.body.appendChild(lightbox);
+}
+
 function initNoteForm() {
+    const imageInput = document.getElementById('note-image-input');
+    const imageBtn = document.getElementById('note-image-btn');
+    const imagePreview = document.getElementById('note-image-preview');
+    const imagePreviewImg = document.getElementById('note-image-preview-img');
+    const imageRemoveBtn = document.getElementById('note-image-remove');
+    const imageData = document.getElementById('note-image-data');
+
     document.getElementById('add-note-btn').addEventListener('click', () => {
         document.getElementById('note-form').reset();
         document.getElementById('note-edit-id').value = '';
@@ -765,6 +814,10 @@ function initNoteForm() {
         document.getElementById('modal-note-title').textContent = 'メモ追加';
         document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => s.classList.remove('active'));
         document.querySelector('#note-color-picker .color-swatch[data-color="#6366f1"]').classList.add('active');
+        // 画像リセット
+        imageData.value = '';
+        imagePreview.style.display = 'none';
+        imageBtn.style.display = '';
         showModal('modal-note');
     });
 
@@ -776,6 +829,40 @@ function initNoteForm() {
         });
     });
 
+    // 画像選択ボタン
+    imageBtn.addEventListener('click', () => imageInput.click());
+
+    // 画像選択後の処理
+    imageInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        imageBtn.textContent = '圧縮中…';
+        imageBtn.disabled = true;
+
+        try {
+            const compressed = await compressImage(file);
+            imageData.value = compressed;
+            imagePreviewImg.src = compressed;
+            imagePreview.style.display = '';
+            imageBtn.style.display = 'none';
+        } catch (err) {
+            console.warn('画像圧縮エラー:', err);
+            alert('画像の読み込みに失敗しました');
+        } finally {
+            imageBtn.textContent = '📷 画像を選択';
+            imageBtn.disabled = false;
+        }
+    });
+
+    // 画像削除
+    imageRemoveBtn.addEventListener('click', () => {
+        imageData.value = '';
+        imageInput.value = '';
+        imagePreview.style.display = 'none';
+        imageBtn.style.display = '';
+    });
+
     document.getElementById('note-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const editId = document.getElementById('note-edit-id').value;
@@ -783,6 +870,7 @@ function initNoteForm() {
             title: document.getElementById('note-title-input').value.trim(),
             content: document.getElementById('note-content').value.trim(),
             color: document.getElementById('note-color').value,
+            image: imageData.value || null,
         };
 
         if (editId) {
@@ -968,6 +1056,21 @@ function initEventDelegation() {
                 document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => {
                     s.classList.toggle('active', s.dataset.color === (note.color || '#6366f1'));
                 });
+                // 画像読み込み
+                const imgData = document.getElementById('note-image-data');
+                const imgPreview = document.getElementById('note-image-preview');
+                const imgPreviewImg = document.getElementById('note-image-preview-img');
+                const imgBtn = document.getElementById('note-image-btn');
+                if (note.image) {
+                    imgData.value = note.image;
+                    imgPreviewImg.src = note.image;
+                    imgPreview.style.display = '';
+                    imgBtn.style.display = 'none';
+                } else {
+                    imgData.value = '';
+                    imgPreview.style.display = 'none';
+                    imgBtn.style.display = '';
+                }
                 document.getElementById('modal-note-title').textContent = 'メモ編集';
                 showModal('modal-note');
                 break;
@@ -975,6 +1078,11 @@ function initEventDelegation() {
             case 'delete-note': {
                 if (!confirm('このメモを削除しますか？')) return;
                 await deleteDoc(doc(db, 'notes', id));
+                break;
+            }
+            case 'view-image': {
+                const src = btn.dataset.src;
+                if (src) showImageLightbox(src);
                 break;
             }
 

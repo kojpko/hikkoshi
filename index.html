@@ -375,6 +375,20 @@
                         <label for="note-content">内容 *</label>
                         <textarea id="note-content" rows="5" required placeholder="自由にメモを書いてください"></textarea>
                     </div>
+                    <div class="form-group">
+                        <label>📷 画像添付</label>
+                        <div class="image-upload-area" id="note-image-area">
+                            <input type="file" id="note-image-input" accept="image/*" capture="environment"
+                                style="display:none">
+                            <button type="button" class="btn btn-ghost btn-sm" id="note-image-btn">📷 画像を選択</button>
+                            <div id="note-image-preview" class="image-preview-container" style="display:none">
+                                <img id="note-image-preview-img" class="image-preview-img" alt="プレビュー">
+                                <button type="button" class="image-remove-btn" id="note-image-remove"
+                                    title="削除">✕</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="note-image-data" value="">
+                    </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-ghost" data-close="modal-note">キャンセル</button>
                         <button type="submit" class="btn btn-primary">保存</button>
