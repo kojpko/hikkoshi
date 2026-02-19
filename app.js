@@ -154,12 +154,17 @@ function switchTab(tabId) {
     if (btn) btn.classList.add('active');
     if (panel) panel.classList.add('active');
 
-    // 行く場所タブに切り替えた時、地図のサイズを再計算
-    if (tabId === 'places' && placesMap) {
+    // 行く場所タブに切り替えた時、地図を初期化/更新
+    if (tabId === 'places') {
         setTimeout(() => {
-            placesMap.invalidateSize();
-            updatePlacesMap();
-        }, 100);
+            if (!placesMap) {
+                initPlacesMap();
+            }
+            if (placesMap) {
+                placesMap.invalidateSize();
+                updatePlacesMap();
+            }
+        }, 200);
     }
 }
 
@@ -388,14 +393,21 @@ function renderPlaces() {
         </div>`;
     }).join('');
 
-    // マップを更新
-    updatePlacesMap();
+    // 行く場所タブが表示されている場合のみマップ更新
+    const placesPanel = document.getElementById('panel-places');
+    if (placesPanel && placesPanel.classList.contains('active') && placesMap) {
+        updatePlacesMap();
+    }
 }
 
 // ----- マップ -----
 let placesMap = null;
 let mapMarkers = [];
 const geocodeCache = {};
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function initPlacesMap() {
     const mapEl = document.getElementById('places-map');
@@ -418,10 +430,10 @@ async function geocodeAddress(address) {
     if (geocodeCache[address]) return geocodeCache[address];
 
     try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=jp`;
-        const res = await fetch(url, {
-            headers: { 'Accept-Language': 'ja' }
-        });
+        // Nominatimは1秒に1リクエストまで
+        await sleep(1100);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=jp&accept-language=ja`;
+        const res = await fetch(url);
         const data = await res.json();
 
         if (data && data.length > 0) {
@@ -436,7 +448,6 @@ async function geocodeAddress(address) {
 }
 
 async function updatePlacesMap() {
-    if (!placesMap) initPlacesMap();
     if (!placesMap) return;
 
     // 既存マーカーをクリア
