@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -141,6 +142,10 @@
                         <span class="empty-icon">🗺️</span>
                         <p>訪問先をリストアップしましょう！<br>役所、不動産屋、銀行など</p>
                     </div>
+                </div>
+                <div class="map-section">
+                    <h3 class="map-title">🗺️ マップ</h3>
+                    <div id="places-map" class="places-map"></div>
                 </div>
             </section>
 
@@ -407,6 +412,8 @@
 
     </div><!-- /app-wrapper -->
 
+    <!-- Leaflet.js -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Firebase SDK -->
     <script type="module" src="app.js"></script>
 </body>

@@ -379,6 +379,112 @@ function renderPlaces() {
             </div>
         </div>`;
     }).join('');
+
+    // マップを更新
+    updatePlacesMap();
+}
+
+// ----- マップ -----
+let placesMap = null;
+let mapMarkers = [];
+const geocodeCache = {};
+
+function initPlacesMap() {
+    const mapEl = document.getElementById('places-map');
+    if (!mapEl || placesMap) return;
+
+    placesMap = L.map('places-map', {
+        center: [35.6812, 139.7671], // 東京デフォルト
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 18,
+    }).addTo(placesMap);
+}
+
+async function geocodeAddress(address) {
+    if (geocodeCache[address]) return geocodeCache[address];
+
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=jp`;
+        const res = await fetch(url, {
+            headers: { 'Accept-Language': 'ja' }
+        });
+        const data = await res.json();
+
+        if (data && data.length > 0) {
+            const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+            geocodeCache[address] = result;
+            return result;
+        }
+    } catch (err) {
+        console.warn('ジオコーディング失敗:', address, err);
+    }
+    return null;
+}
+
+async function updatePlacesMap() {
+    if (!placesMap) initPlacesMap();
+    if (!placesMap) return;
+
+    // 既存マーカーをクリア
+    mapMarkers.forEach(m => placesMap.removeLayer(m));
+    mapMarkers = [];
+
+    // 住所があるplaceをフィルタ
+    const placesWithAddress = state.places.filter(p => p.address && p.address.trim());
+
+    if (placesWithAddress.length === 0) {
+        return;
+    }
+
+    const bounds = [];
+
+    for (const place of placesWithAddress) {
+        const coords = await geocodeAddress(place.address);
+        if (!coords) continue;
+
+        const icon = L.divIcon({
+            className: 'custom-pin',
+            html: `<div style="
+                background: ${place.done ? '#10b981' : '#6366f1'};
+                width: 28px; height: 28px;
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg);
+                border: 3px solid #fff;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                display: flex; align-items: center; justify-content: center;
+            "><span style="transform:rotate(45deg);font-size:12px;">${place.done ? '✓' : '📍'}</span></div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 28],
+            popupAnchor: [0, -28],
+        });
+
+        const marker = L.marker([coords.lat, coords.lng], { icon })
+            .addTo(placesMap)
+            .bindPopup(`
+                <div class="popup-name">${escapeHtml(place.name)}</div>
+                ${place.purpose ? `<div class="popup-purpose">📋 ${escapeHtml(place.purpose)}</div>` : ''}
+                ${place.address ? `<div class="popup-purpose">🏢 ${escapeHtml(place.address)}</div>` : ''}
+                ${place.date ? `<div class="popup-purpose">📅 ${formatDate(place.date)}</div>` : ''}
+            `);
+
+        mapMarkers.push(marker);
+        bounds.push([coords.lat, coords.lng]);
+    }
+
+    // 全マーカーが見えるように調整
+    if (bounds.length > 0) {
+        if (bounds.length === 1) {
+            placesMap.setView(bounds[0], 15);
+        } else {
+            placesMap.fitBounds(bounds, { padding: [30, 30] });
+        }
+    }
 }
 
 function initPlaceForm() {

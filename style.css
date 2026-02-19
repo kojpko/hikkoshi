@@ -666,6 +666,68 @@ body::before {
     opacity: 1;
 }
 
+/* --- Map Section --- */
+.map-section {
+    margin-top: 20px;
+}
+
+.map-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.places-map {
+    width: 100%;
+    height: 350px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    background: var(--bg-card);
+}
+
+.places-map .leaflet-popup-content-wrapper {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow-md);
+}
+
+.places-map .leaflet-popup-tip {
+    background: var(--bg-secondary);
+}
+
+.places-map .leaflet-popup-content {
+    margin: 10px 14px;
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.places-map .leaflet-popup-content .popup-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.places-map .leaflet-popup-content .popup-purpose {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.map-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 20px;
+}
+
 /* --- Timeline / Schedule --- */
 .timeline {
     position: relative;
