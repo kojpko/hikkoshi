@@ -886,6 +886,24 @@ body::before {
     opacity: 1;
 }
 
+/* --- Task URL --- */
+.task-url {
+    margin-top: 4px;
+}
+
+.task-url a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 0.8rem;
+    word-break: break-all;
+    transition: color var(--transition-fast);
+}
+
+.task-url a:hover {
+    color: var(--accent-secondary);
+    text-decoration: underline;
+}
+
 /* --- Notes Grid --- */
 .notes-grid {
     display: grid;

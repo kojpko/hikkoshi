@@ -279,6 +279,7 @@ function renderTasks() {
             const dueTxt = task.due ? formatDate(task.due) : '';
             const overdueClass = task.due && isOverdue(task.due) && !task.done ? ' overdue' : '';
             const memoHtml = task.memo ? `<div class="task-memo-text">${escapeHtml(task.memo)}</div>` : '';
+            const urlHtml = task.url ? `<div class="task-url"><a href="${escapeHtml(task.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🔗 ${escapeHtml(task.url.length > 40 ? task.url.substring(0, 40) + '…' : task.url)}</a></div>` : '';
 
             return `
             <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
@@ -293,6 +294,7 @@ function renderTasks() {
                         ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
                     </div>
                     ${memoHtml}
+                    ${urlHtml}
                 </div>
                 <div class="task-item-actions">
                     <button class="btn-icon" data-action="edit-task" data-id="${task.id}" title="編集">✏️</button>
@@ -328,6 +330,7 @@ function initTaskForm() {
             priority: document.getElementById('task-priority').value,
             due: document.getElementById('task-due').value,
             memo: document.getElementById('task-memo').value.trim(),
+            url: document.getElementById('task-url').value.trim(),
         };
 
         if (editId) {
@@ -1008,6 +1011,7 @@ function initEventDelegation() {
                 document.getElementById('task-priority').value = task.priority;
                 document.getElementById('task-due').value = task.due || '';
                 document.getElementById('task-memo').value = task.memo || '';
+                document.getElementById('task-url').value = task.url || '';
                 document.getElementById('modal-task-title').textContent = 'タスク編集';
                 showModal('modal-task');
                 break;
