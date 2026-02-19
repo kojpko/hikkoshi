@@ -755,9 +755,9 @@ function renderNotes() {
 
         return `
         <div class="note-card" data-id="${note.id}" style="border-top-color: ${note.color || '#6366f1'}">
-            ${imagesHtml}
             <div class="note-card-title">${escapeHtml(note.title)}</div>
             <div class="note-card-content">${escapeHtml(note.content)}</div>
+            ${imagesHtml}
             <div class="note-card-actions">
                 <button class="btn-icon" data-action="edit-note" data-id="${note.id}" title="編集">✏️</button>
                 <button class="btn-icon danger" data-action="delete-note" data-id="${note.id}" title="削除">🗑️</button>

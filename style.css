@@ -942,7 +942,7 @@ body::before {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    margin-bottom: 10px;
+    margin-top: 10px;
 }
 
 .note-card-thumb {
