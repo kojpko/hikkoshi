@@ -745,9 +745,17 @@ function renderNotes() {
     }
 
     container.innerHTML = state.notes.map(note => {
+        // 後方互換: note.image (単一) → note.images (配列)
+        const images = note.images || (note.image ? [note.image] : []);
+        const imagesHtml = images.length > 0
+            ? `<div class="note-card-images">${images.map(src =>
+                `<img class="note-card-thumb" src="${src}" alt="メモ画像" data-action="view-image" data-src="${src}">`
+            ).join('')}</div>`
+            : '';
+
         return `
         <div class="note-card" data-id="${note.id}" style="border-top-color: ${note.color || '#6366f1'}">
-            ${note.image ? `<img class="note-card-image" src="${note.image}" alt="メモ画像" data-action="view-image" data-src="${note.image}">` : ''}
+            ${imagesHtml}
             <div class="note-card-title">${escapeHtml(note.title)}</div>
             <div class="note-card-content">${escapeHtml(note.content)}</div>
             <div class="note-card-actions">
@@ -799,13 +807,37 @@ function showImageLightbox(src) {
     document.body.appendChild(lightbox);
 }
 
+// 複数画像管理用
+let noteImages = [];
+
+function getNoteImagesData() {
+    return document.getElementById('note-images-data');
+}
+
+function renderImageThumbs() {
+    const grid = document.getElementById('note-images-grid');
+    grid.innerHTML = noteImages.map((src, i) => `
+        <div class="image-thumb-wrap">
+            <img src="${src}" alt="画像${i + 1}">
+            <button type="button" class="image-remove-btn" data-img-idx="${i}">✕</button>
+        </div>
+    `).join('');
+
+    // 削除ボタン
+    grid.querySelectorAll('.image-remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = parseInt(btn.dataset.imgIdx);
+            noteImages.splice(idx, 1);
+            getNoteImagesData().value = JSON.stringify(noteImages);
+            renderImageThumbs();
+        });
+    });
+}
+
 function initNoteForm() {
     const imageInput = document.getElementById('note-image-input');
     const imageBtn = document.getElementById('note-image-btn');
-    const imagePreview = document.getElementById('note-image-preview');
-    const imagePreviewImg = document.getElementById('note-image-preview-img');
-    const imageRemoveBtn = document.getElementById('note-image-remove');
-    const imageData = document.getElementById('note-image-data');
 
     document.getElementById('add-note-btn').addEventListener('click', () => {
         document.getElementById('note-form').reset();
@@ -815,9 +847,9 @@ function initNoteForm() {
         document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => s.classList.remove('active'));
         document.querySelector('#note-color-picker .color-swatch[data-color="#6366f1"]').classList.add('active');
         // 画像リセット
-        imageData.value = '';
-        imagePreview.style.display = 'none';
-        imageBtn.style.display = '';
+        noteImages = [];
+        getNoteImagesData().value = '[]';
+        renderImageThumbs();
         showModal('modal-note');
     });
 
@@ -829,7 +861,7 @@ function initNoteForm() {
         });
     });
 
-    // 画像選択ボタン
+    // 画像追加ボタン
     imageBtn.addEventListener('click', () => imageInput.click());
 
     // 画像選択後の処理
@@ -842,25 +874,17 @@ function initNoteForm() {
 
         try {
             const compressed = await compressImage(file);
-            imageData.value = compressed;
-            imagePreviewImg.src = compressed;
-            imagePreview.style.display = '';
-            imageBtn.style.display = 'none';
+            noteImages.push(compressed);
+            getNoteImagesData().value = JSON.stringify(noteImages);
+            renderImageThumbs();
         } catch (err) {
             console.warn('画像圧縮エラー:', err);
             alert('画像の読み込みに失敗しました');
         } finally {
-            imageBtn.textContent = '📷 画像を選択';
+            imageBtn.textContent = '📷 画像を追加';
             imageBtn.disabled = false;
+            imageInput.value = '';
         }
-    });
-
-    // 画像削除
-    imageRemoveBtn.addEventListener('click', () => {
-        imageData.value = '';
-        imageInput.value = '';
-        imagePreview.style.display = 'none';
-        imageBtn.style.display = '';
     });
 
     document.getElementById('note-form').addEventListener('submit', async (e) => {
@@ -870,7 +894,8 @@ function initNoteForm() {
             title: document.getElementById('note-title-input').value.trim(),
             content: document.getElementById('note-content').value.trim(),
             color: document.getElementById('note-color').value,
-            image: imageData.value || null,
+            images: noteImages,
+            image: null, // 旧フィールドをクリア
         };
 
         if (editId) {
@@ -1056,21 +1081,10 @@ function initEventDelegation() {
                 document.querySelectorAll('#note-color-picker .color-swatch').forEach(s => {
                     s.classList.toggle('active', s.dataset.color === (note.color || '#6366f1'));
                 });
-                // 画像読み込み
-                const imgData = document.getElementById('note-image-data');
-                const imgPreview = document.getElementById('note-image-preview');
-                const imgPreviewImg = document.getElementById('note-image-preview-img');
-                const imgBtn = document.getElementById('note-image-btn');
-                if (note.image) {
-                    imgData.value = note.image;
-                    imgPreviewImg.src = note.image;
-                    imgPreview.style.display = '';
-                    imgBtn.style.display = 'none';
-                } else {
-                    imgData.value = '';
-                    imgPreview.style.display = 'none';
-                    imgBtn.style.display = '';
-                }
+                // 複数画像読み込み
+                noteImages = note.images || (note.image ? [note.image] : []);
+                getNoteImagesData().value = JSON.stringify(noteImages);
+                renderImageThumbs();
                 document.getElementById('modal-note-title').textContent = 'メモ編集';
                 showModal('modal-note');
                 break;
