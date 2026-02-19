@@ -747,7 +747,14 @@ function renderNotes() {
         return;
     }
 
-    container.innerHTML = state.notes.map(note => {
+    // order順にソート（未設定はcreatedAt順）
+    const sorted = [...state.notes].sort((a, b) => {
+        const oa = a.order != null ? a.order : (a.createdAt || 0);
+        const ob = b.order != null ? b.order : (b.createdAt || 0);
+        return oa - ob;
+    });
+
+    container.innerHTML = sorted.map((note, idx) => {
         // 後方互換: note.image (単一) → note.images (配列)
         const images = note.images || (note.image ? [note.image] : []);
         const imagesHtml = images.length > 0
@@ -765,6 +772,8 @@ function renderNotes() {
             ${urlHtml}
             ${imagesHtml}
             <div class="note-card-actions">
+                <button class="btn-icon" data-action="move-note-up" data-id="${note.id}" title="上へ" ${idx === 0 ? 'disabled' : ''}>⬆️</button>
+                <button class="btn-icon" data-action="move-note-down" data-id="${note.id}" title="下へ" ${idx === sorted.length - 1 ? 'disabled' : ''}>⬇️</button>
                 <button class="btn-icon" data-action="edit-note" data-id="${note.id}" title="編集">✏️</button>
                 <button class="btn-icon danger" data-action="delete-note" data-id="${note.id}" title="削除">🗑️</button>
             </div>
@@ -1101,6 +1110,26 @@ function initEventDelegation() {
             case 'delete-note': {
                 if (!confirm('このメモを削除しますか？')) return;
                 await deleteDoc(doc(db, 'notes', id));
+                break;
+            }
+            case 'move-note-up':
+            case 'move-note-down': {
+                const sorted = [...state.notes].sort((a, b) => {
+                    const oa = a.order != null ? a.order : (a.createdAt || 0);
+                    const ob = b.order != null ? b.order : (b.createdAt || 0);
+                    return oa - ob;
+                });
+                const curIdx = sorted.findIndex(n => n.id === id);
+                const swapIdx = action === 'move-note-up' ? curIdx - 1 : curIdx + 1;
+                if (curIdx < 0 || swapIdx < 0 || swapIdx >= sorted.length) break;
+
+                const curNote = sorted[curIdx];
+                const swapNote = sorted[swapIdx];
+                const curOrder = curNote.order != null ? curNote.order : curIdx;
+                const swapOrder = swapNote.order != null ? swapNote.order : swapIdx;
+
+                await updateDoc(doc(db, 'notes', curNote.id), { order: swapOrder });
+                await updateDoc(doc(db, 'notes', swapNote.id), { order: curOrder });
                 break;
             }
             case 'view-image': {
