@@ -756,10 +756,13 @@ function renderNotes() {
             ).join('')}</div>`
             : '';
 
+        const urlHtml = note.url ? `<div class="task-url"><a href="${escapeHtml(note.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🔗 ${escapeHtml(note.url.length > 40 ? note.url.substring(0, 40) + '…' : note.url)}</a></div>` : '';
+
         return `
         <div class="note-card" data-id="${note.id}" style="border-top-color: ${note.color || '#6366f1'}">
             <div class="note-card-title">${escapeHtml(note.title)}</div>
             <div class="note-card-content">${escapeHtml(note.content)}</div>
+            ${urlHtml}
             ${imagesHtml}
             <div class="note-card-actions">
                 <button class="btn-icon" data-action="edit-note" data-id="${note.id}" title="編集">✏️</button>
@@ -899,6 +902,7 @@ function initNoteForm() {
             color: document.getElementById('note-color').value,
             images: noteImages,
             image: null, // 旧フィールドをクリア
+            url: document.getElementById('note-url').value.trim(),
         };
 
         if (editId) {
@@ -1089,6 +1093,7 @@ function initEventDelegation() {
                 noteImages = note.images || (note.image ? [note.image] : []);
                 getNoteImagesData().value = JSON.stringify(noteImages);
                 renderImageThumbs();
+                document.getElementById('note-url').value = note.url || '';
                 document.getElementById('modal-note-title').textContent = 'メモ編集';
                 showModal('modal-note');
                 break;
