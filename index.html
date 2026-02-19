@@ -257,8 +257,9 @@
                         <label>📋 サブタスク</label>
                         <div id="modal-subtask-list" class="subtask-list"></div>
                         <div class="subtask-add">
-                            <input type="text" class="subtask-input" id="modal-subtask-input" placeholder="サブタスクを追加…">
-                            <button type="button" class="btn btn-ghost btn-sm" id="modal-subtask-add-btn">＋</button>
+                            <input type="text" class="subtask-input" id="modal-subtask-input" placeholder="サブタスクを追加…"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();addModalSubtask();}">
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="addModalSubtask()">＋</button>
                         </div>
                     </div>
                     <div class="form-actions">

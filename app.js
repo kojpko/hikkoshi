@@ -344,17 +344,25 @@ function renderModalSubtasks() {
     list.innerHTML = modalSubtasks.map((st, i) => `
         <div class="subtask-item">
             <span class="subtask-name">${escapeHtml(st.name)}</span>
-            <button type="button" class="btn-icon danger subtask-delete modal-subtask-remove" data-idx="${i}" style="opacity:1">✕</button>
+            <button type="button" class="btn-icon danger subtask-delete" onclick="removeModalSubtask(${i})" style="opacity:1">✕</button>
         </div>
     `).join('');
-
-    list.querySelectorAll('.modal-subtask-remove').forEach(btn => {
-        btn.addEventListener('click', () => {
-            modalSubtasks.splice(parseInt(btn.dataset.idx), 1);
-            renderModalSubtasks();
-        });
-    });
 }
+
+window.removeModalSubtask = function (idx) {
+    modalSubtasks.splice(idx, 1);
+    renderModalSubtasks();
+};
+
+window.addModalSubtask = function () {
+    const input = document.getElementById('modal-subtask-input');
+    const name = input.value.trim();
+    if (!name) return;
+    modalSubtasks.push({ name, done: false });
+    input.value = '';
+    renderModalSubtasks();
+    input.focus();
+};
 
 function initTaskForm() {
     document.getElementById('add-task-btn').addEventListener('click', () => {
@@ -366,22 +374,6 @@ function initTaskForm() {
         showModal('modal-task');
     });
 
-    // モーダル内サブタスク追加
-    document.getElementById('modal-subtask-add-btn').addEventListener('click', () => {
-        const input = document.getElementById('modal-subtask-input');
-        const name = input.value.trim();
-        if (!name) return;
-        modalSubtasks.push({ name, done: false });
-        input.value = '';
-        renderModalSubtasks();
-    });
-
-    document.getElementById('modal-subtask-input').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            document.getElementById('modal-subtask-add-btn').click();
-        }
-    });
 
     document.getElementById('task-form').addEventListener('submit', async (e) => {
         e.preventDefault();
