@@ -281,20 +281,44 @@ function renderTasks() {
             const memoHtml = task.memo ? `<div class="task-memo-text">${escapeHtml(task.memo)}</div>` : '';
             const urlHtml = task.url ? `<div class="task-url"><a href="${escapeHtml(task.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🔗 ${escapeHtml(task.url.length > 40 ? task.url.substring(0, 40) + '…' : task.url)}</a></div>` : '';
 
+            const subtasks = task.subtasks || [];
+            const subtasksDone = subtasks.filter(s => s.done).length;
+            const subtaskCountTag = subtasks.length > 0
+                ? `<span class="task-tag subtask-count">📋 ${subtasksDone}/${subtasks.length}</span>`
+                : '';
+
+            const subtasksHtml = subtasks.map((st, i) => `
+                <div class="subtask-item ${st.done ? 'done' : ''}">
+                    <button class="subtask-checkbox ${st.done ? 'checked' : ''}" data-action="toggle-subtask" data-id="${task.id}" data-idx="${i}">
+                        ${st.done ? '✓' : ''}
+                    </button>
+                    <span class="subtask-name">${escapeHtml(st.name)}</span>
+                    <button class="btn-icon danger subtask-delete" data-action="delete-subtask" data-id="${task.id}" data-idx="${i}" title="削除">✕</button>
+                </div>
+            `).join('');
+
             return `
             <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
                 <button class="task-checkbox ${task.done ? 'checked' : ''}" data-action="toggle-task" data-id="${task.id}">
                     ${task.done ? '✓' : ''}
                 </button>
                 <div class="task-item-content">
-                    <div class="task-item-name">${escapeHtml(task.name)}</div>
+                    <div class="task-item-name" data-action="toggle-expand" data-id="${task.id}">${escapeHtml(task.name)}</div>
                     <div class="task-item-meta">
                         <span class="task-tag">${CATEGORIES[task.category] || task.category}</span>
                         <span class="task-tag priority-${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
                         ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
+                        ${subtaskCountTag}
                     </div>
                     ${memoHtml}
                     ${urlHtml}
+                    <div class="subtask-panel" id="subtask-panel-${task.id}" style="display:none">
+                        <div class="subtask-list">${subtasksHtml}</div>
+                        <div class="subtask-add">
+                            <input type="text" class="subtask-input" id="subtask-input-${task.id}" placeholder="サブタスクを追加…">
+                            <button class="btn btn-ghost btn-sm" data-action="add-subtask" data-id="${task.id}">＋</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="task-item-actions">
                     <button class="btn-icon" data-action="edit-task" data-id="${task.id}" title="編集">✏️</button>
@@ -1032,6 +1056,43 @@ function initEventDelegation() {
             case 'delete-task': {
                 if (!confirm('このタスクを削除しますか？')) return;
                 await deleteDoc(doc(db, 'tasks', id));
+                break;
+            }
+            case 'toggle-expand': {
+                const panel = document.getElementById(`subtask-panel-${id}`);
+                if (panel) {
+                    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+                }
+                break;
+            }
+            case 'add-subtask': {
+                const input = document.getElementById(`subtask-input-${id}`);
+                const name = input ? input.value.trim() : '';
+                if (!name) return;
+                const task = state.tasks.find(t => t.id === id);
+                if (!task) return;
+                const subtasks = [...(task.subtasks || []), { name, done: false }];
+                await updateDoc(doc(db, 'tasks', id), { subtasks });
+                break;
+            }
+            case 'toggle-subtask': {
+                const idx = parseInt(btn.dataset.idx);
+                const task = state.tasks.find(t => t.id === id);
+                if (!task) return;
+                const subtasks = [...(task.subtasks || [])];
+                if (subtasks[idx]) {
+                    subtasks[idx] = { ...subtasks[idx], done: !subtasks[idx].done };
+                    await updateDoc(doc(db, 'tasks', id), { subtasks });
+                }
+                break;
+            }
+            case 'delete-subtask': {
+                const idx2 = parseInt(btn.dataset.idx);
+                const task = state.tasks.find(t => t.id === id);
+                if (!task) return;
+                const subtasks = [...(task.subtasks || [])];
+                subtasks.splice(idx2, 1);
+                await updateDoc(doc(db, 'tasks', id), { subtasks });
                 break;
             }
 

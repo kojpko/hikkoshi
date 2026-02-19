@@ -588,6 +588,107 @@ body::before {
     font-style: italic;
 }
 
+.task-item-name {
+    cursor: pointer;
+}
+
+.task-item-name:hover {
+    color: var(--accent-primary);
+}
+
+/* --- Subtasks --- */
+.subtask-panel {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.subtask-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.subtask-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    background: transparent;
+    color: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.subtask-checkbox.checked {
+    border-color: var(--accent-success);
+    background: var(--accent-success);
+    color: #fff;
+}
+
+.subtask-name {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.subtask-item.done .subtask-name {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.subtask-delete {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 0.6rem !important;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.subtask-item:hover .subtask-delete {
+    opacity: 1;
+}
+
+.subtask-add {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.subtask-input {
+    flex: 1;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    font-family: var(--font-family);
+    font-size: 0.8rem;
+}
+
+.subtask-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.subtask-count {
+    background: rgba(16, 185, 129, 0.12) !important;
+    color: var(--accent-success) !important;
+}
+
 /* --- Place List --- */
 .place-list {
     display: flex;
