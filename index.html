@@ -253,6 +253,14 @@
                         <label for="task-url">🔗 URL</label>
                         <input type="text" id="task-url" placeholder="https://example.com">
                     </div>
+                    <div class="form-group">
+                        <label>📋 サブタスク</label>
+                        <div id="modal-subtask-list" class="subtask-list"></div>
+                        <div class="subtask-add">
+                            <input type="text" class="subtask-input" id="modal-subtask-input" placeholder="サブタスクを追加…">
+                            <button type="button" class="btn btn-ghost btn-sm" id="modal-subtask-add-btn">＋</button>
+                        </div>
+                    </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-ghost" data-close="modal-task">キャンセル</button>
                         <button type="submit" class="btn btn-primary">保存</button>

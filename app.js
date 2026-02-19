@@ -337,12 +337,50 @@ function renderTasks() {
     updateProgress();
 }
 
+let modalSubtasks = [];
+
+function renderModalSubtasks() {
+    const list = document.getElementById('modal-subtask-list');
+    list.innerHTML = modalSubtasks.map((st, i) => `
+        <div class="subtask-item">
+            <span class="subtask-name">${escapeHtml(st.name)}</span>
+            <button type="button" class="btn-icon danger subtask-delete modal-subtask-remove" data-idx="${i}" style="opacity:1">✕</button>
+        </div>
+    `).join('');
+
+    list.querySelectorAll('.modal-subtask-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            modalSubtasks.splice(parseInt(btn.dataset.idx), 1);
+            renderModalSubtasks();
+        });
+    });
+}
+
 function initTaskForm() {
     document.getElementById('add-task-btn').addEventListener('click', () => {
         document.getElementById('task-form').reset();
         document.getElementById('task-edit-id').value = '';
         document.getElementById('modal-task-title').textContent = 'タスク追加';
+        modalSubtasks = [];
+        renderModalSubtasks();
         showModal('modal-task');
+    });
+
+    // モーダル内サブタスク追加
+    document.getElementById('modal-subtask-add-btn').addEventListener('click', () => {
+        const input = document.getElementById('modal-subtask-input');
+        const name = input.value.trim();
+        if (!name) return;
+        modalSubtasks.push({ name, done: false });
+        input.value = '';
+        renderModalSubtasks();
+    });
+
+    document.getElementById('modal-subtask-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('modal-subtask-add-btn').click();
+        }
     });
 
     document.getElementById('task-form').addEventListener('submit', async (e) => {
@@ -355,6 +393,7 @@ function initTaskForm() {
             due: document.getElementById('task-due').value,
             memo: document.getElementById('task-memo').value.trim(),
             url: document.getElementById('task-url').value.trim(),
+            subtasks: modalSubtasks,
         };
 
         if (editId) {
@@ -1049,6 +1088,8 @@ function initEventDelegation() {
                 document.getElementById('task-due').value = task.due || '';
                 document.getElementById('task-memo').value = task.memo || '';
                 document.getElementById('task-url').value = task.url || '';
+                modalSubtasks = task.subtasks ? task.subtasks.map(s => ({ ...s })) : [];
+                renderModalSubtasks();
                 document.getElementById('modal-task-title').textContent = 'タスク編集';
                 showModal('modal-task');
                 break;
