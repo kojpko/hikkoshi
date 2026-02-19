@@ -153,6 +153,14 @@ function switchTab(tabId) {
     const panel = document.getElementById(`panel-${tabId}`);
     if (btn) btn.classList.add('active');
     if (panel) panel.classList.add('active');
+
+    // 行く場所タブに切り替えた時、地図のサイズを再計算
+    if (tabId === 'places' && placesMap) {
+        setTimeout(() => {
+            placesMap.invalidateSize();
+            updatePlacesMap();
+        }, 100);
+    }
 }
 
 // ===== モーダル管理 =====
