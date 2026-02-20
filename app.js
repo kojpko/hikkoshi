@@ -297,8 +297,10 @@ function renderTasks() {
                 </div>
             `).join('');
 
+            const hasSubtasksClass = subtasks.length > 0 ? ' has-subtasks' : '';
+
             return `
-            <div class="task-item ${task.done ? 'done' : ''}" data-action="toggle-expand" data-id="${task.id}">
+            <div class="task-item ${task.done ? 'done' : ''}${hasSubtasksClass}" data-action="toggle-expand" data-id="${task.id}">
                 <button class="task-checkbox ${task.done ? 'checked' : ''}" data-action="toggle-task" data-id="${task.id}">
                     ${task.done ? '✓' : ''}
                 </button>
