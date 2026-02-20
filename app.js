@@ -303,15 +303,17 @@ function renderTasks() {
                     ${task.done ? '✓' : ''}
                 </button>
                 <div class="task-item-content">
-                    <div class="task-item-name" data-action="toggle-expand" data-id="${task.id}">${escapeHtml(task.name)}</div>
-                    <div class="task-item-meta">
-                        <span class="task-tag">${CATEGORIES[task.category] || task.category}</span>
-                        <span class="task-tag priority-${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
-                        ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
-                        ${subtaskCountTag}
+                    <div class="task-item-header" data-action="toggle-expand" data-id="${task.id}">
+                        <div class="task-item-name">${escapeHtml(task.name)}</div>
+                        <div class="task-item-meta">
+                            <span class="task-tag">${CATEGORIES[task.category] || task.category}</span>
+                            <span class="task-tag priority-${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
+                            ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
+                            ${subtaskCountTag}
+                        </div>
+                        ${memoHtml}
+                        ${urlHtml}
                     </div>
-                    ${memoHtml}
-                    ${urlHtml}
                     <div class="subtask-panel" id="subtask-panel-${task.id}" style="display:none">
                         <div class="subtask-list">${subtasksHtml}</div>
                         <div class="subtask-add">

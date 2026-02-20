@@ -588,11 +588,11 @@ body::before {
     font-style: italic;
 }
 
-.task-item-name {
+.task-item-header {
     cursor: pointer;
 }
 
-.task-item-name:hover {
+.task-item-header:hover .task-item-name {
     color: var(--accent-primary);
 }
 
