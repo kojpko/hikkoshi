@@ -298,22 +298,20 @@ function renderTasks() {
             `).join('');
 
             return `
-            <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
+            <div class="task-item ${task.done ? 'done' : ''}" data-action="toggle-expand" data-id="${task.id}">
                 <button class="task-checkbox ${task.done ? 'checked' : ''}" data-action="toggle-task" data-id="${task.id}">
                     ${task.done ? '✓' : ''}
                 </button>
                 <div class="task-item-content">
-                    <div class="task-item-header" data-action="toggle-expand" data-id="${task.id}">
-                        <div class="task-item-name">${escapeHtml(task.name)}</div>
-                        <div class="task-item-meta">
-                            <span class="task-tag">${CATEGORIES[task.category] || task.category}</span>
-                            <span class="task-tag priority-${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
-                            ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
-                            ${subtaskCountTag}
-                        </div>
-                        ${memoHtml}
-                        ${urlHtml}
+                    <div class="task-item-name">${escapeHtml(task.name)}</div>
+                    <div class="task-item-meta">
+                        <span class="task-tag">${CATEGORIES[task.category] || task.category}</span>
+                        <span class="task-tag priority-${task.priority}">${PRIORITY_LABELS[task.priority]}</span>
+                        ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
+                        ${subtaskCountTag}
                     </div>
+                    ${memoHtml}
+                    ${urlHtml}
                     <div class="subtask-panel" id="subtask-panel-${task.id}" style="display:none">
                         <div class="subtask-list">${subtasksHtml}</div>
                         <div class="subtask-add">
@@ -1094,6 +1092,8 @@ function initEventDelegation() {
                 break;
             }
             case 'toggle-expand': {
+                if (e.target.closest('.subtask-panel')) break;
+                if (e.target.closest('.task-checkbox')) break;
                 const panel = document.getElementById(`subtask-panel-${id}`);
                 if (panel) {
                     panel.style.display = panel.style.display === 'none' ? '' : 'none';

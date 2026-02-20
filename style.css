@@ -588,16 +588,17 @@ body::before {
     font-style: italic;
 }
 
-.task-item-header {
+.task-item {
     cursor: pointer;
 }
 
-.task-item-header:hover .task-item-name {
+.task-item:hover .task-item-name {
     color: var(--accent-primary);
 }
 
 /* --- Subtasks --- */
 .subtask-panel {
+    cursor: default;
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid var(--border-color);
