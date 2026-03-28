@@ -727,7 +727,7 @@ function renderPostTasks() {
         container.innerHTML = `
             <div class="empty-state">
                 <span class="empty-icon">🏠</span>
-                <p>引っ越し後にやることを登録しましょう！<br>住所変更、挨拶回りなど</p>
+                <p>引っ越し後にやることを登録しましょう！<br>住所変更など</p>
             </div>`;
         return;
     }
