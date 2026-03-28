@@ -720,6 +720,33 @@ function initPostTasksListener() {
     });
 }
 
+let modalPostSubtasks = [];
+
+function renderModalPostSubtasks() {
+    const list = document.getElementById('modal-post-subtask-list');
+    list.innerHTML = modalPostSubtasks.map((st, i) => `
+        <div class="subtask-item">
+            <span class="subtask-name">${escapeHtml(st.name)}</span>
+            <button type="button" class="btn-icon danger subtask-delete" onclick="removeModalPostSubtask(${i})" style="opacity:1">✕</button>
+        </div>
+    `).join('');
+}
+
+window.removeModalPostSubtask = function(idx) {
+    modalPostSubtasks.splice(idx, 1);
+    renderModalPostSubtasks();
+};
+
+window.addModalPostSubtask = function() {
+    const input = document.getElementById('modal-post-subtask-input');
+    const name = input.value.trim();
+    if (!name) return;
+    modalPostSubtasks.push({ name, done: false });
+    input.value = '';
+    renderModalPostSubtasks();
+    input.focus();
+};
+
 function renderPostTasks() {
     const container = document.getElementById('post-task-list');
 
@@ -741,15 +768,49 @@ function renderPostTasks() {
         const memoHtml = task.memo ? `<div class="task-memo-text">${escapeHtml(task.memo)}</div>` : '';
         const urlHtml = task.url ? `<div class="task-url"><a href="${escapeHtml(task.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🔗 ${escapeHtml(task.url.length > 40 ? task.url.substring(0, 40) + '…' : task.url)}</a></div>` : '';
 
+        const dueTxt = task.due ? formatDate(task.due) : '';
+        const overdueClass = isOverdue(task.due) && !task.done ? ' overdue' : '';
+
+        const subtasks = task.subtasks || [];
+        const subtasksDone = subtasks.filter(s => s.done).length;
+        const subtaskCountTag = subtasks.length > 0
+            ? `<span class="task-tag subtask-count">📋 ${subtasksDone}/${subtasks.length}</span>`
+            : '';
+
+        const subtasksHtml = subtasks.map((st, i) => `
+            <div class="subtask-item ${st.done ? 'done' : ''}">
+                <button class="subtask-checkbox ${st.done ? 'checked' : ''}" data-action="toggle-post-subtask" data-id="${task.id}" data-idx="${i}">
+                    ${st.done ? '✓' : ''}
+                </button>
+                <span class="subtask-name">${escapeHtml(st.name)}</span>
+                <button class="btn-icon danger subtask-delete" data-action="delete-post-subtask" data-id="${task.id}" data-idx="${i}" title="削除">✕</button>
+            </div>
+        `).join('');
+
+        const hasSubtasksClass = subtasks.length > 0 ? ' has-subtasks' : '';
+
         return `
-        <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
+        <div class="task-item ${task.done ? 'done' : ''}${hasSubtasksClass}" data-action="toggle-post-expand" data-id="${task.id}">
             <button class="task-checkbox ${task.done ? 'checked' : ''}" data-action="toggle-post-task" data-id="${task.id}">
                 ${task.done ? '✓' : ''}
             </button>
             <div class="task-item-content">
                 <div class="task-item-name">${escapeHtml(task.name)}</div>
+                <div class="task-item-meta">
+                    <span class="task-tag">${CATEGORIES[task.category] || task.category || '🔧 その他'}</span>
+                    <span class="task-tag priority-${task.priority || 'medium'}">${PRIORITY_LABELS[task.priority] || '🟡 中'}</span>
+                    ${dueTxt ? `<span class="task-tag due${overdueClass}">📅 ${dueTxt}</span>` : ''}
+                    ${subtaskCountTag}
+                </div>
                 ${memoHtml}
                 ${urlHtml}
+                <div class="subtask-panel" id="post-subtask-panel-${task.id}" style="display:none">
+                    <div class="subtask-list">${subtasksHtml}</div>
+                    <div class="subtask-add">
+                        <input type="text" class="subtask-input" id="post-subtask-input-${task.id}" placeholder="サブタスクを追加…">
+                        <button class="btn-small" data-action="add-post-subtask" data-id="${task.id}">追加</button>
+                    </div>
+                </div>
             </div>
             <div class="task-item-actions">
                 <button class="btn-icon" data-action="edit-post-task" data-id="${task.id}" title="編集">✏️</button>
@@ -764,6 +825,8 @@ function initPostTaskForm() {
         document.getElementById('post-task-form').reset();
         document.getElementById('post-task-edit-id').value = '';
         document.getElementById('modal-post-task-title').textContent = '引っ越し後タスク追加';
+        modalPostSubtasks = [];
+        renderModalPostSubtasks();
         showModal('modal-post-task');
     });
 
@@ -772,8 +835,12 @@ function initPostTaskForm() {
         const editId = document.getElementById('post-task-edit-id').value;
         const data = {
             name: document.getElementById('post-task-name').value.trim(),
+            category: document.getElementById('post-task-category').value,
+            priority: document.getElementById('post-task-priority').value,
+            due: document.getElementById('post-task-due').value,
             memo: document.getElementById('post-task-memo').value.trim(),
             url: document.getElementById('post-task-url').value.trim(),
+            subtasks: modalPostSubtasks,
         };
 
         if (editId) {
@@ -1179,8 +1246,13 @@ function initEventDelegation() {
                 if (!pt) return;
                 document.getElementById('post-task-edit-id').value = pt.id;
                 document.getElementById('post-task-name').value = pt.name;
+                document.getElementById('post-task-category').value = pt.category || 'other';
+                document.getElementById('post-task-priority').value = pt.priority || 'medium';
+                document.getElementById('post-task-due').value = pt.due || '';
                 document.getElementById('post-task-memo').value = pt.memo || '';
                 document.getElementById('post-task-url').value = pt.url || '';
+                modalPostSubtasks = pt.subtasks ? pt.subtasks.map(s => ({ ...s })) : [];
+                renderModalPostSubtasks();
                 document.getElementById('modal-post-task-title').textContent = '引っ越し後タスク編集';
                 showModal('modal-post-task');
                 break;
@@ -1188,6 +1260,45 @@ function initEventDelegation() {
             case 'delete-post-task': {
                 if (!confirm('このタスクを削除しますか？')) return;
                 await deleteDoc(doc(db, 'post-tasks', id));
+                break;
+            }
+            case 'toggle-post-expand': {
+                if (e.target.closest('.subtask-panel')) break;
+                if (e.target.closest('.task-checkbox')) break;
+                const panel = document.getElementById(`post-subtask-panel-${id}`);
+                if (panel) {
+                    panel.style.display = panel.style.display === 'none' ? '' : 'none';
+                }
+                break;
+            }
+            case 'add-post-subtask': {
+                const input = document.getElementById(`post-subtask-input-${id}`);
+                const name = input ? input.value.trim() : '';
+                if (!name) return;
+                const pt = state.postTasks.find(t => t.id === id);
+                if (!pt) return;
+                const subtasks = [...(pt.subtasks || []), { name, done: false }];
+                await updateDoc(doc(db, 'post-tasks', id), { subtasks });
+                break;
+            }
+            case 'toggle-post-subtask': {
+                const idx = parseInt(btn.dataset.idx);
+                const pt = state.postTasks.find(t => t.id === id);
+                if (!pt) return;
+                const subtasks = [...(pt.subtasks || [])];
+                if (subtasks[idx]) {
+                    subtasks[idx] = { ...subtasks[idx], done: !subtasks[idx].done };
+                    await updateDoc(doc(db, 'post-tasks', id), { subtasks });
+                }
+                break;
+            }
+            case 'delete-post-subtask': {
+                const idx2 = parseInt(btn.dataset.idx);
+                const pt = state.postTasks.find(t => t.id === id);
+                if (!pt) return;
+                const subtasks = [...(pt.subtasks || [])];
+                subtasks.splice(idx2, 1);
+                await updateDoc(doc(db, 'post-tasks', id), { subtasks });
                 break;
             }
 

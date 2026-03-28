@@ -331,6 +331,32 @@
                         <label for="post-task-name">タスク名 *</label>
                         <input type="text" id="post-task-name" required placeholder="例：転入届を出す">
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="post-task-category">カテゴリ</label>
+                            <select id="post-task-category" class="select-input">
+                                <option value="housing">🏠 住居関連</option>
+                                <option value="paperwork">📋 届出・手続き</option>
+                                <option value="packing">📦 荷造り・整理</option>
+                                <option value="utilities">💡 ライフライン</option>
+                                <option value="finance">💰 費用・契約</option>
+                                <option value="address">📬 住所変更通知</option>
+                                <option value="other">🔧 その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="post-task-priority">優先度</label>
+                            <select id="post-task-priority" class="select-input">
+                                <option value="high">🔴 高</option>
+                                <option value="medium" selected>🟡 中</option>
+                                <option value="low">🟢 低</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="post-task-due">期日</label>
+                        <input type="date" id="post-task-due">
+                    </div>
                     <div class="form-group">
                         <label for="post-task-memo">メモ</label>
                         <textarea id="post-task-memo" rows="2" placeholder="補足情報があれば"></textarea>
@@ -338,6 +364,15 @@
                     <div class="form-group">
                         <label for="post-task-url">🔗 URL</label>
                         <input type="text" id="post-task-url" placeholder="https://example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>📋 サブタスク</label>
+                        <div id="modal-post-subtask-list" class="subtask-list"></div>
+                        <div class="subtask-add">
+                            <input type="text" class="subtask-input" id="modal-post-subtask-input" placeholder="サブタスクを追加…"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();addModalPostSubtask();}">
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="addModalPostSubtask()">＋</button>
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-ghost" data-close="modal-post-task">キャンセル</button>
