@@ -22,7 +22,7 @@
     --accent-warning: #f59e0b;
     --accent-danger: #ef4444;
 
-    --gradient-hero: linear-gradient(135deg, #4f46e5 0%, #7c3aed 40%, #db2777 100%);
+    --gradient-hero: linear-gradient(135deg, #818cf8 0%, #c084fc 40%, #f472b6 100%);
     --gradient-card: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(236, 72, 153, 0.03));
 
     --border-color: rgba(0, 0, 0, 0.08);
