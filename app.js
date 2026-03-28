@@ -89,7 +89,7 @@ let state = {
     movingDate: '2026-03-31',
     tasks: [],
     places: [],
-    events: [],
+    postTasks: [],
     notes: [],
     expenses: [],
 };
@@ -711,75 +711,77 @@ function initPlaceForm() {
     });
 }
 
-// ----- スケジュール -----
-function initEventsListener() {
-    const q = collection(db, 'events');
+// ----- 引っ越し後やることリスト -----
+function initPostTasksListener() {
+    const q = collection(db, 'post-tasks');
     onSnapshot(q, (snapshot) => {
-        state.events = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderEvents();
+        state.postTasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderPostTasks();
     });
 }
 
-function renderEvents() {
-    const container = document.getElementById('timeline');
+function renderPostTasks() {
+    const container = document.getElementById('post-task-list');
 
-    if (state.events.length === 0) {
+    if (!state.postTasks || state.postTasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <span class="empty-icon">📅</span>
-                <p>引っ越しまでの予定を登録しましょう！</p>
+                <span class="empty-icon">🏠</span>
+                <p>引っ越し後にやることを登録しましょう！<br>住所変更、挨拶回りなど</p>
             </div>`;
         return;
     }
 
-    const sorted = [...state.events].sort((a, b) => a.date.localeCompare(b.date));
+    const sorted = [...state.postTasks].sort((a, b) => {
+        if (a.done !== b.done) return a.done ? 1 : -1;
+        return (a.createdAt || 0) - (b.createdAt || 0);
+    });
 
-    container.innerHTML = sorted.map(ev => {
-        let timeClass = '';
-        if (isToday(ev.date)) timeClass = 'today';
-        else if (isPast(ev.date)) timeClass = 'past';
+    container.innerHTML = sorted.map(task => {
+        const memoHtml = task.memo ? `<div class="task-memo-text">${escapeHtml(task.memo)}</div>` : '';
+        const urlHtml = task.url ? `<div class="task-url"><a href="${escapeHtml(task.url)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">🔗 ${escapeHtml(task.url.length > 40 ? task.url.substring(0, 40) + '…' : task.url)}</a></div>` : '';
 
         return `
-        <div class="timeline-item ${timeClass}" data-id="${ev.id}">
-            <div class="timeline-dot"></div>
-            <div class="timeline-card">
-                <div class="timeline-date">${formatDate(ev.date)}</div>
-                <div class="timeline-title">${escapeHtml(ev.title)}</div>
-                ${ev.time ? `<div class="timeline-time">🕐 ${ev.time}</div>` : ''}
-                ${ev.description ? `<div class="timeline-desc">${escapeHtml(ev.description)}</div>` : ''}
-                <div class="timeline-card-actions">
-                    <button class="btn-icon" data-action="edit-event" data-id="${ev.id}" title="編集">✏️</button>
-                    <button class="btn-icon danger" data-action="delete-event" data-id="${ev.id}" title="削除">🗑️</button>
-                </div>
+        <div class="task-item ${task.done ? 'done' : ''}" data-id="${task.id}">
+            <button class="task-checkbox ${task.done ? 'checked' : ''}" data-action="toggle-post-task" data-id="${task.id}">
+                ${task.done ? '✓' : ''}
+            </button>
+            <div class="task-item-content">
+                <div class="task-item-name">${escapeHtml(task.name)}</div>
+                ${memoHtml}
+                ${urlHtml}
+            </div>
+            <div class="task-item-actions">
+                <button class="btn-icon" data-action="edit-post-task" data-id="${task.id}" title="編集">✏️</button>
+                <button class="btn-icon danger" data-action="delete-post-task" data-id="${task.id}" title="削除">🗑️</button>
             </div>
         </div>`;
     }).join('');
 }
 
-function initEventForm() {
-    document.getElementById('add-event-btn').addEventListener('click', () => {
-        document.getElementById('event-form').reset();
-        document.getElementById('event-edit-id').value = '';
-        document.getElementById('modal-event-title').textContent = '予定追加';
-        showModal('modal-event');
+function initPostTaskForm() {
+    document.getElementById('add-post-task-btn').addEventListener('click', () => {
+        document.getElementById('post-task-form').reset();
+        document.getElementById('post-task-edit-id').value = '';
+        document.getElementById('modal-post-task-title').textContent = '引っ越し後タスク追加';
+        showModal('modal-post-task');
     });
 
-    document.getElementById('event-form').addEventListener('submit', async (e) => {
+    document.getElementById('post-task-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const editId = document.getElementById('event-edit-id').value;
+        const editId = document.getElementById('post-task-edit-id').value;
         const data = {
-            title: document.getElementById('event-title').value.trim(),
-            date: document.getElementById('event-date').value,
-            time: document.getElementById('event-time').value,
-            description: document.getElementById('event-description').value.trim(),
+            name: document.getElementById('post-task-name').value.trim(),
+            memo: document.getElementById('post-task-memo').value.trim(),
+            url: document.getElementById('post-task-url').value.trim(),
         };
 
         if (editId) {
-            await updateDoc(doc(db, 'events', editId), data);
+            await updateDoc(doc(db, 'post-tasks', editId), data);
         } else {
-            await addDoc(collection(db, 'events'), { ...data, createdAt: Date.now() });
+            await addDoc(collection(db, 'post-tasks'), { ...data, done: false, createdAt: Date.now() });
         }
-        hideModal('modal-event');
+        hideModal('modal-post-task');
     });
 }
 
@@ -1166,22 +1168,26 @@ function initEventDelegation() {
                 break;
             }
 
-            // スケジュール
-            case 'edit-event': {
-                const ev = state.events.find(e => e.id === id);
-                if (!ev) return;
-                document.getElementById('event-edit-id').value = ev.id;
-                document.getElementById('event-title').value = ev.title;
-                document.getElementById('event-date').value = ev.date;
-                document.getElementById('event-time').value = ev.time || '';
-                document.getElementById('event-description').value = ev.description || '';
-                document.getElementById('modal-event-title').textContent = '予定編集';
-                showModal('modal-event');
+            // 引っ越し後タスク
+            case 'toggle-post-task': {
+                const pt = state.postTasks.find(t => t.id === id);
+                if (pt) await updateDoc(doc(db, 'post-tasks', id), { done: !pt.done });
                 break;
             }
-            case 'delete-event': {
-                if (!confirm('この予定を削除しますか？')) return;
-                await deleteDoc(doc(db, 'events', id));
+            case 'edit-post-task': {
+                const pt = state.postTasks.find(t => t.id === id);
+                if (!pt) return;
+                document.getElementById('post-task-edit-id').value = pt.id;
+                document.getElementById('post-task-name').value = pt.name;
+                document.getElementById('post-task-memo').value = pt.memo || '';
+                document.getElementById('post-task-url').value = pt.url || '';
+                document.getElementById('modal-post-task-title').textContent = '引っ越し後タスク編集';
+                showModal('modal-post-task');
+                break;
+            }
+            case 'delete-post-task': {
+                if (!confirm('このタスクを削除しますか？')) return;
+                await deleteDoc(doc(db, 'post-tasks', id));
                 break;
             }
 
@@ -1320,7 +1326,7 @@ async function initApp() {
     initMovingDate();
     initTaskForm();
     initPlaceForm();
-    initEventForm();
+    initPostTaskForm();
     initNoteForm();
     initExpenseForm();
     initEventDelegation();
@@ -1329,7 +1335,7 @@ async function initApp() {
     await loadSettings();
     initTasksListener();
     initPlacesListener();
-    initEventsListener();
+    initPostTasksListener();
     initNotesListener();
     initExpensesListener();
 
