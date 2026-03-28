@@ -103,10 +103,8 @@ body::before {
 .header-title h1 {
     font-size: 1.6rem;
     font-weight: 700;
-    background: var(--gradient-hero);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #312e81;
+    letter-spacing: -0.02em;
 }
 
 .subtitle {
